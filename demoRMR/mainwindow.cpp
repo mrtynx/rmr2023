@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "robot_control.h"
 #include <QPainter>
 #include <math.h>
 

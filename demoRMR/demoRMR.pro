@@ -81,8 +81,10 @@ INCLUDEPATH += /usr/local/include/opencv4/
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+        odometry.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    odometry.h
 
 FORMS    += mainwindow.ui

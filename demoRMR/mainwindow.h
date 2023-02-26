@@ -27,6 +27,9 @@
 #include "robot.h"
 
 #include <QJoysticks.h>
+
+// BERKI 98310
+
 namespace Ui {
 class MainWindow;
 }

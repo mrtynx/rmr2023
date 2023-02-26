@@ -80,7 +80,6 @@ SOURCES += \
 
 HEADERS += \
     CKobuki.h \
-    robot_control.h \
     robot_global.h \
     robot.h \
     rplidar.h \

@@ -260,7 +260,7 @@ void Robot::imageViewer()
 
 
 
-        std::cout<<"doslo toto "<<frameBuf.rows<<" "<<frameBuf.cols<<std::endl;
+//        std::cout<<"doslo toto "<<frameBuf.rows<<" "<<frameBuf.cols<<std::endl;
 
 
       // tu sa vola callback..

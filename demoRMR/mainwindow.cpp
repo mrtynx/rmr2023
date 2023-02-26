@@ -1,10 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "robot_control.h"
 #include <QPainter>
 #include <math.h>
+#include "robot.h"
 
 //BERKI MARTIN 98310
+
+#include "odometry.h"
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -28,7 +30,9 @@ MainWindow::MainWindow(QWidget *parent) :
     datacounter=0;
 
 
+
 }
+
 
 MainWindow::~MainWindow()
 {
@@ -91,40 +95,30 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
 /// vola sa vzdy ked dojdu nove data z robota. nemusite nic riesit, proste sa to stane
 int MainWindow::processThisRobot(TKobukiData robotdata)
 {
+    static double EncoderRightPrev = 0;
+    static double EncoderLeftPrev = 0;
+    static double EncoderRightDiff = 0;
+    static double EncoderLeftDiff = 0;
 
-
-    ///tu mozete robit s datami z robota
-    /// ale nic vypoctovo narocne - to iste vlakno ktore cita data z robota
-    ///teraz tu posielam rychlosti na zaklade toho co setne joystick a vypisujeme data z robota(kazdy 5ty krat. ale mozete skusit aj castejsie). vyratajte si polohu. a vypiste spravnu
-    /// tuto joystick cast mozete vklude vymazat,alebo znasilnit na vas regulator alebo ake mate pohnutky... kazdopadne, aktualne to blokuje gombiky cize tak
-    if(forwardspeed==0 && rotationspeed!=0)
-        robot.setRotationSpeed(rotationspeed);
-    else if(forwardspeed!=0 && rotationspeed==0)
-        robot.setTranslationSpeed(forwardspeed);
-    else if((forwardspeed!=0 && rotationspeed!=0))
-        robot.setArcSpeed(forwardspeed,forwardspeed/rotationspeed);
-    else
-        robot.setTranslationSpeed(0);
-
-///TU PISTE KOD... TOTO JE TO MIESTO KED NEVIETE KDE ZACAT,TAK JE TO NAOZAJ TU. AK AJ TAK NEVIETE, SPYTAJTE SA CVICIACEHO MA TU NATO STRING KTORY DA DO HLADANIA XXX
-
-    if(datacounter%5)
+    if(datacounter % 2)
     {
-
-        ///ak nastavite hodnoty priamo do prvkov okna,ako je to na tychto zakomentovanych riadkoch tak sa moze stat ze vam program padne
-                // ui->lineEdit_2->setText(QString::number(robotdata.EncoderRight));
-                //ui->lineEdit_3->setText(QString::number(robotdata.EncoderLeft));
-                //ui->lineEdit_4->setText(QString::number(robotdata.GyroAngle));
-                /// lepsi pristup je nastavit len nejaku premennu, a poslat signal oknu na prekreslenie
-                /// okno pocuva vo svojom slote a vasu premennu nastavi tak ako chcete. prikaz emit to presne takto spravi
-                /// viac o signal slotoch tu: https://doc.qt.io/qt-5/signalsandslots.html
-        ///posielame sem nezmysli.. pohrajte sa nech sem idu zmysluplne veci
-        emit uiValuesChanged(robotdata.EncoderLeft,11,12);
-        ///toto neodporucam na nejake komplikovane struktury.signal slot robi kopiu dat. radsej vtedy posielajte
-        /// prazdny signal a slot bude vykreslovat strukturu (vtedy ju musite mat samozrejme ako member premmennu v mainwindow.ak u niekoho najdem globalnu premennu,tak bude cistit bludisko zubnou kefkou.. kefku dodam)
-        /// vtedy ale odporucam pouzit mutex, aby sa vam nestalo ze budete pocas vypisovania prepisovat niekde inde
-
+        EncoderLeftPrev = robotdata.EncoderLeft;
+        EncoderRightPrev = robotdata.EncoderRight;
     }
+
+    else
+    {
+        EncoderLeftDiff = datacounter == 0 ? 0 : Odometry::normalizeDiff(double(robotdata.EncoderLeft - EncoderLeftPrev));
+        EncoderRightDiff = datacounter == 0 ? 0 : Odometry::normalizeDiff(double(robotdata.EncoderRight - EncoderRightPrev));
+    }
+
+    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+
+    if(datacounter % 5)
+    {
+        emit uiValuesChanged(robotdata.EncoderLeft,11,12);
+    }
+
     datacounter++;
 
     return 0;

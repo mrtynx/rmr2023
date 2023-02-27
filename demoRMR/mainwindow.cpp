@@ -100,6 +100,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static double EncoderRightDiff = 0;
     static double EncoderLeftDiff = 0;
 
+    static double coords[3] = {0.0, 0.0, 0.0};
+
     if(datacounter % 2)
     {
         EncoderLeftPrev = robotdata.EncoderLeft;
@@ -114,9 +116,11 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
     std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 
+    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
     if(datacounter % 5)
     {
-        emit uiValuesChanged(robotdata.EncoderLeft,11,12);
+        emit uiValuesChanged(coords[0]*100, coords[1]*100, Odometry::rad2deg(coords[2]));
     }
 
     datacounter++;

@@ -8,9 +8,9 @@
             const long double tickToMeter = 0.000085292090497737556558;
             const long double wheelBaseDistanceM = 0.23;
 
-            static double getWheelDistance(double diff);
-            static double normalizeDiff(double diff);
-            static void curveLocalization(double leftDiff, double rightDiff, double* coords);
+            static double getWheelDistance(int diff);
+            static int normalizeDiff(int diff);
+            static void curveLocalization(int leftDiff, int rightDiff, double* coords);
             static double rad2deg(double phi);
 
     };

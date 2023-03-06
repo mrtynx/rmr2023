@@ -1,16 +1,17 @@
 #include "odometry.h"
 #include <math.h>
 #include <limits.h>
+#include <iostream>
 
-#define M_PI 3.14159
+#define M_PI 3.14159265358979323846
 
 
-double Odometry::getWheelDistance(double diff)
+double Odometry::getWheelDistance(int diff)
 {
     return Odometry().tickToMeter*diff;
 }
 
-double Odometry::normalizeDiff(double diff)
+int Odometry::normalizeDiff(int diff)
 {
     if (diff > SHRT_MAX) return diff - USHRT_MAX;
 
@@ -19,12 +20,13 @@ double Odometry::normalizeDiff(double diff)
     else return diff;
 }
 
+
 double Odometry::rad2deg(double phi)
 {
     return fmod(phi*(180.0 / M_PI) + 180.0, 360.0) - 180.0;
 }
 
-void Odometry::curveLocalization(double leftDiff, double rightDiff, double* coords)
+void Odometry::curveLocalization(int leftDiff, int rightDiff, double* coords)
 {
     double lenL = Odometry::getWheelDistance(leftDiff);
     double lenR = Odometry::getWheelDistance(rightDiff);

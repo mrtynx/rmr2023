@@ -95,24 +95,18 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
 /// vola sa vzdy ked dojdu nove data z robota. nemusite nic riesit, proste sa to stane
 int MainWindow::processThisRobot(TKobukiData robotdata)
 {
-    static double EncoderRightPrev = 0;
-    static double EncoderLeftPrev = 0;
-    static double EncoderRightDiff = 0;
-    static double EncoderLeftDiff = 0;
+    static int EncoderRightPrev = robotdata.EncoderRight;
+    static int EncoderLeftPrev = robotdata.EncoderLeft;
+    static int EncoderRightDiff = 0;
+    static int EncoderLeftDiff = 0;
 
     static double coords[3] = {0.0, 0.0, 0.0};
 
-    if(datacounter % 2)
-    {
-        EncoderLeftPrev = robotdata.EncoderLeft;
-        EncoderRightPrev = robotdata.EncoderRight;
-    }
+    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
+    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
 
-    else
-    {
-        EncoderLeftDiff = datacounter == 0 ? 0 : Odometry::normalizeDiff(double(robotdata.EncoderLeft - EncoderLeftPrev));
-        EncoderRightDiff = datacounter == 0 ? 0 : Odometry::normalizeDiff(double(robotdata.EncoderRight - EncoderRightPrev));
-    }
+    EncoderLeftPrev = robotdata.EncoderLeft;
+    EncoderRightPrev = robotdata.EncoderRight;
 
     std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 

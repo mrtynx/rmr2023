@@ -237,3 +237,21 @@ void MainWindow::getNewFrame()
 {
 
 }
+
+
+
+void MainWindow::on_RegulateButton_clicked()
+{
+    QString str = ui->lineEdit_5->text();
+    bool is_ok;
+    double coord1 = str.toDouble(&is_ok);
+    if(is_ok)
+    {
+        std::cout<<coord1<<std::endl;
+    }
+    else
+    {
+        std::cout<<"Not valid number"<<std::endl;
+    }
+}
+

@@ -11,6 +11,7 @@
             static double getWheelDistance(int diff);
             static int normalizeDiff(int diff);
             static void curveLocalization(int leftDiff, int rightDiff, double* coords);
+            static void circularLocalization();
             static double rad2deg(double phi);
 
     };

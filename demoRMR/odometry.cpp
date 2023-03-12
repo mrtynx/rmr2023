@@ -21,10 +21,16 @@ int Odometry::normalizeDiff(int diff)
 }
 
 
+
 double Odometry::rad2deg(double phi)
 {
-    return fmod(phi*(180.0 / M_PI) + 180.0, 360.0) - 180.0;
+    double angle = fmod(phi*(180.0 / M_PI) + 180.0, 360.0);
+
+    if(phi < -M_PI) return angle + 180;
+
+    return angle - 180.0;
 }
+
 
 void Odometry::curveLocalization(int leftDiff, int rightDiff, double* coords)
 {

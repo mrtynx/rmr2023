@@ -108,7 +108,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     EncoderLeftPrev = robotdata.EncoderLeft;
     EncoderRightPrev = robotdata.EncoderRight;
 
-    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+//    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+    std::cout<<"Rads: "<<coords[2]<<" Degs: "<<Odometry::rad2deg(coords[2])<<std::endl;
 
     Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
 

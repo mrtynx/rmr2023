@@ -7,7 +7,7 @@
 //BERKI MARTIN 98310
 
 #include "odometry.h"
-
+#include "control_system.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -108,10 +108,15 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     EncoderLeftPrev = robotdata.EncoderLeft;
     EncoderRightPrev = robotdata.EncoderRight;
 
-//    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
-    std::cout<<"Rads: "<<coords[2]<<" Degs: "<<Odometry::rad2deg(coords[2])<<std::endl;
-
     Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+    double setpoint[2] = {50, 0};
+    double Angle = Control::getAngleError(setpoint, coords);
+
+//    Debug
+    std::cout<<Odometry::rad2deg(Angle)<<std::endl;
+//    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords)<<std::endl;
+//    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+//    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
 
     if(datacounter % 5)
     {
@@ -243,16 +248,22 @@ void MainWindow::getNewFrame()
 
 void MainWindow::on_RegulateButton_clicked()
 {
-    QString str = ui->lineEdit_5->text();
-    bool is_ok;
-    double coord1 = str.toDouble(&is_ok);
-    if(is_ok)
-    {
-        std::cout<<coord1<<std::endl;
-    }
-    else
-    {
-        std::cout<<"Not valid number"<<std::endl;
-    }
+//    QString x = ui->lineEdit_5->text();
+//    bool is_ok_x;
+//    double coordx = x.toDouble(&is_ok_x);
+
+//    QString y = ui->lineEdit_6->text();
+//    bool is_ok_y;
+//    double coordy = y.toDouble(&is_ok_y);
+
+//    if(is_ok_x && is_ok_y)
+//    {
+
+//    }
+
+    const double setpoint[2] = {50, 100};
+
+
+
 }
 

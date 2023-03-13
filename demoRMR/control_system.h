@@ -9,11 +9,12 @@ public:
 
     static double getAngleError(double* setpoint_xy, double* coords);
     static double robotTargetDist(double* setpoint_xy, double* coords);
+    static double normalizeAngleError(double error);
 
     static bool robotReachedTarget(double dist);
 
     static void rampRotationSpeed(double setpoint_angle, double angle);
-    static void setRobotAngle(double ref, double angle, Robot* robot);
+    static void setRobotAngle(double* setpoint_xy, double* coords, Robot* robot);
     static void setRobotPosition(double* ref, double* coords, Robot* robot);
 };
 

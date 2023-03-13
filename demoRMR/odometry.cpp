@@ -20,8 +20,6 @@ int Odometry::normalizeDiff(int diff)
     else return diff;
 }
 
-
-
 double Odometry::rad2deg(double phi)
 {
     double angle = fmod(phi*(180.0 / M_PI) + 180.0, 360.0);
@@ -50,7 +48,21 @@ void Odometry::circularLocalization(int leftDiff, int rightDiff, double* coords)
     double lenR = Odometry::getWheelDistance(rightDiff);
     double deltaA = (lenR-lenL)/Odometry().wheelBaseDistanceM;
 
-    coords[0] += (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (sin(coords[2]+deltaA) - sin(coords[2]));
-    coords[1] -= (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (cos(coords[2]+deltaA) - cos(coords[2]));
+    double x;
+    double y;
+
+    x = coords[0] + (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (sin(coords[2]+deltaA) - sin(coords[2]));
+    y = coords[1] - (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (cos(coords[2]+deltaA) - cos(coords[2]));
+
+    if(isnan(x) || isnan(y))
+    {
+        Odometry::curveLocalization(leftDiff, rightDiff, coords);
+    }
+    else
+    {
+        coords[0] = x;
+        coords[1] = y;
+    }
+
     coords[2] += deltaA;
 }

@@ -11,6 +11,14 @@ double Control::getAngleError(double* setpoint_xy, double* coords)
     return setpoint_angle - coords[2];
 }
 
+double Control::normalizeAngleError(double error)
+{
+    if(error > M_PI) return -2*M_PI + error;
+
+    if(error < -M_PI) return 2*M_PI + error;
+
+    return error;
+}
 
 double Control::robotTargetDist(double* setpoint_xy, double* coords)
 {
@@ -31,10 +39,11 @@ void Control::rampRotationSpeed(double setpoint_angle, double angle)
 }
 
 
-void Control::setRobotAngle(double ref, double angle, Robot* robot)
+void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
 {
-    double Kp = 0.25;
-    double error = ref - angle;
+    double Kp = 3;
+    double error = Control::getAngleError(setpoint_xy,coords);
+    error = Control::normalizeAngleError(error);
     double rotation_speed = Signal::saturate(Kp*error, M_PI/2, -M_PI/2);
 
     robot->setRotationSpeed(rotation_speed);
@@ -43,7 +52,7 @@ void Control::setRobotAngle(double ref, double angle, Robot* robot)
 
 void Control::setRobotPosition(double* ref, double* coords, Robot* robot)
 {
-    double Kp = 0.25;
+    double Kp = 1.5;
     double error = Control::robotTargetDist(ref, coords);
     double translation_speed = Signal::saturate(Kp*error, 350, -350);
 

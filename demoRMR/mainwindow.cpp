@@ -16,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
     ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
+    ipaddress = "192.168.1.11";
   //  cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     datacounter=0;
@@ -101,7 +102,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int EncoderLeftDiff = 0;
 
     static double coords[3] = {0.0, 0.0, 0.0};
-    double setpoint[2] = {15, 115};
+    double setpoint[2] = {5, 345};
 
     EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
     EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
@@ -111,10 +112,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
     Odometry::circularLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
 
-
-
-//    double angle_err = Control::getAngleError(setpoint, coords);
-//    Control::setRobotAngle(90, Odometry::rad2deg(coords[2]),&robot);
+    Control::setRobotAngle(setpoint, coords, &robot);
+    Control::setRobotPosition(setpoint, coords, &robot);
 
 //    Debug
 //    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;

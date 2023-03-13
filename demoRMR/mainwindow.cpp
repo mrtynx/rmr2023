@@ -100,12 +100,41 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int EncoderLeftPrev = robotdata.EncoderLeft;
     static int EncoderRightDiff = 0;
     static int EncoderLeftDiff = 0;
+    static int setpointCounter = 0;
 
     static double coords[3] = {0.0, 0.0, 0.0};
-    static double deadband_angle = 0.025;
+    static double deadband_angle = 0.2;
 
-    double setpoint[2] = {5, 275};
-//    double setpoint[2] = {1, 1};
+    static double setpoint[2];
+    double setpoint_arr[2][2] = { {5, 100}, {7,150} };
+
+    if(datacounter == 0)
+    {
+        setpoint[0] = setpoint_arr[0][0];
+        setpoint[1] = setpoint_arr[0][1];
+        setpointCounter++;
+    }
+
+
+    if(!Control::robotReachedTarget(setpoint, coords, 5.0))
+    {
+        if(abs(Control::getAngleError(setpoint, coords)) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
+
+        else Control::setRobotPosition(setpoint, coords, &robot);
+    }
+
+    else if(setpointCounter < sizeof(setpoint_arr)/sizeof(double)/2)
+    {
+        setpoint[0] = setpoint_arr[setpointCounter][0];
+        setpoint[1] = setpoint_arr[setpointCounter][1];
+        setpointCounter++;
+    }
+
+    else
+    {
+        robot.setRotationSpeed(0);
+        robot.setTranslationSpeed(0);
+    }
 
     EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
     EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
@@ -113,30 +142,15 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     EncoderLeftPrev = robotdata.EncoderLeft;
     EncoderRightPrev = robotdata.EncoderRight;
 
-    std::cout<<"Reached dist OUT: "<<Control::robotReachedTarget(setpoint, coords, 10.0)<<std::endl;
-
-//    if(Control::robotReachedTarget(setpoint, coords, 10.0) == 0)
-//    {
-//        if(abs(Control::getAngleError(setpoint, coords)) > deadband_angle)
-//        {
-//            Control::setRobotAngle(setpoint, coords, &robot);
-//        }
-
-//        else Control::setRobotPosition(setpoint, coords, &robot);
-//    }
-
-    if(Control::robotReachedTarget(setpoint, coords, 10.0) == 0)
-    {
-        Control::setRobotArcPos(setpoint, coords, &robot);
-    }
-
     Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
 
 
+
 //    Debug
-    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
+//    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
 //    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-//    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 10.0)<<std::endl;
+    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 5.0)<<std::endl;
+    std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
 

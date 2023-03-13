@@ -54,6 +54,8 @@ public:
 
     int processThisRobot(TKobukiData robotdata);
 
+//    int regulateThisRobot(TKobukiData robotdata);
+
 int processThisCamera(cv::Mat cameraData);
 
 private slots:

@@ -101,6 +101,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int EncoderLeftDiff = 0;
 
     static double coords[3] = {0.0, 0.0, 0.0};
+    double setpoint[2] = {15, 115};
 
     EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
     EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
@@ -108,12 +109,15 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     EncoderLeftPrev = robotdata.EncoderLeft;
     EncoderRightPrev = robotdata.EncoderRight;
 
-    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
-    double setpoint[2] = {50, 0};
-    double Angle = Control::getAngleError(setpoint, coords);
+    Odometry::circularLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
+
+
+//    double angle_err = Control::getAngleError(setpoint, coords);
+//    Control::setRobotAngle(90, Odometry::rad2deg(coords[2]),&robot);
 
 //    Debug
-    std::cout<<Odometry::rad2deg(Angle)<<std::endl;
+//    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
 //    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords)<<std::endl;
 //    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
@@ -128,6 +132,56 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     return 0;
 
 }
+
+//int MainWindow::regulateThisRobot(TKobukiData robotdata)
+//{
+//    static int EncoderRightPrev = robotdata.EncoderRight;
+//    static int EncoderLeftPrev = robotdata.EncoderLeft;
+//    static int EncoderRightDiff = 0;
+//    static int EncoderLeftDiff = 0;
+
+//    static double coords[3] = {0.0, 0.0, 0.0};
+
+//    double setpoint[2] = {15, 155};
+
+//    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
+//    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
+
+//    EncoderLeftPrev = robotdata.EncoderLeft;
+//    EncoderRightPrev = robotdata.EncoderRight;
+
+//    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
+//    double pos_err = Control::robotTargetDist(setpoint, coords);
+
+//    double angle_err = Control::getAngleError(setpoint, coords);
+//    Control::setRobotAngle(angle_err, Odometry::rad2deg(coords[2]),&robot);
+
+////    if(!Control::robotReachedTarget(pos_err))
+////    {
+////        double angle_err = Control::getAngleError(setpoint, coords);
+////        Control::setRobotAngle(angle_err, Odometry::rad2deg(coords[2]),&robot);
+
+////        Control::setRobotPosition(setpoint, coords, &robot);
+////    }
+
+
+
+////    Debug
+////    std::cout<<Odometry::rad2deg(Angle)<<std::endl;
+////    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords)<<std::endl;
+////    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+////    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
+
+//    if(datacounter % 5)
+//    {
+//        emit uiValuesChanged(coords[0]*100, coords[1]*100, Odometry::rad2deg(coords[2]));
+//    }
+
+//    datacounter++;
+
+//    return 0;
+//}
 
 ///toto je calback na data z lidaru, ktory ste podhodili robotu vo funkcii on_pushButton_9_clicked
 /// vola sa ked dojdu nove data z lidaru
@@ -261,8 +315,10 @@ void MainWindow::on_RegulateButton_clicked()
 
 //    }
 
-    const double setpoint[2] = {50, 100};
-
+//    const double setpoint[2] = {50, 100};
+//    robot.setRobotParameters(ipaddress,53000,5300,std::bind(&MainWindow::regulateThisRobot,this,std::placeholders::_1));
+//    robot.robotStart();
+    robot.setArcSpeed(50,50);
 
 
 }

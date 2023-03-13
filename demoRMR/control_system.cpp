@@ -26,9 +26,10 @@ double Control::robotTargetDist(double* setpoint_xy, double* coords)
 
 }
 
-bool Control::robotReachedTarget(double dist)
+bool Control::robotReachedTarget(double* setpoint_xy, double* coords, double bias)
 {
-    if(dist <= Odometry().wheelBaseDistanceM *10 / 2) return true;
+    double dist = Control::robotTargetDist(setpoint_xy, coords);
+    if(dist <= Odometry().wheelBaseDistanceM / 2 + bias) return true;
 
     return false;
 }
@@ -58,6 +59,17 @@ void Control::setRobotPosition(double* ref, double* coords, Robot* robot)
 
     robot->setTranslationSpeed(translation_speed);
 
+}
+
+void Control::setRobotArcPos(double* ref, double* coords, Robot* robot)
+{
+    double Kp_trans = 0.75;
+    double Kp_rot = 0.75;
+
+    double angle_error = Control::normalizeAngleError(Control::getAngleError(ref, coords));
+    double pos_error = Control::robotTargetDist(ref, coords);
+
+    robot->setArcSpeed(Kp_trans*pos_error, Kp_rot*angle_error);
 }
 
 double Signal::saturate(double x, double upper, double lower)

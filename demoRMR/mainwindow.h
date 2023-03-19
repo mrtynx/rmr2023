@@ -72,9 +72,14 @@ private slots:
     void on_pushButton_4_clicked();
 
     void on_pushButton_clicked();
+
     void getNewFrame();
 
-    void on_RegulateButton_clicked();
+    void on_tableWidget_cellEntered(int row, int column);
+
+    void on_setButton_clicked();
+
+    void on_pushButton_10_clicked();
 
 private:
 
@@ -87,6 +92,8 @@ private:
      Robot robot;
      TKobukiData robotdata;
      int datacounter;
+     double setpoint_arr[3][2];
+     double default_setpoint[3][2] = {{5.0, 25.0}, {3.0, 14.0}, {16.0, 100.0}};
      QTimer *timer;
 
      QJoysticks *instance;

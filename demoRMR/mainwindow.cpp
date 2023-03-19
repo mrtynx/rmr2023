@@ -31,7 +31,6 @@ MainWindow::MainWindow(QWidget *parent) :
     datacounter=0;
 
 
-
 }
 
 
@@ -103,10 +102,9 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int setpointCounter = 0;
 
     static double coords[3] = {0.0, 0.0, 0.0};
-    static double deadband_angle = 0.2;
+    static double deadband_angle = 0.15;
 
     static double setpoint[2];
-    double setpoint_arr[2][2] = { {5, 100}, {7,150} };
 
     if(datacounter == 0)
     {
@@ -116,7 +114,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     }
 
 
-    if(!Control::robotReachedTarget(setpoint, coords, 5.0))
+    if(!Control::robotReachedTarget(setpoint, coords, 1.0))
     {
         if(abs(Control::getAngleError(setpoint, coords)) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
 
@@ -147,9 +145,9 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
 
 //    Debug
-//    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
+    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
 //    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 5.0)<<std::endl;
+    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 1.0)<<std::endl;
     std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
@@ -165,55 +163,6 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
 }
 
-//int MainWindow::regulateThisRobot(TKobukiData robotdata)
-//{
-//    static int EncoderRightPrev = robotdata.EncoderRight;
-//    static int EncoderLeftPrev = robotdata.EncoderLeft;
-//    static int EncoderRightDiff = 0;
-//    static int EncoderLeftDiff = 0;
-
-//    static double coords[3] = {0.0, 0.0, 0.0};
-
-//    double setpoint[2] = {15, 155};
-
-//    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
-//    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
-
-//    EncoderLeftPrev = robotdata.EncoderLeft;
-//    EncoderRightPrev = robotdata.EncoderRight;
-
-//    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
-
-//    double pos_err = Control::robotTargetDist(setpoint, coords);
-
-//    double angle_err = Control::getAngleError(setpoint, coords);
-//    Control::setRobotAngle(angle_err, Odometry::rad2deg(coords[2]),&robot);
-
-////    if(!Control::robotReachedTarget(pos_err))
-////    {
-////        double angle_err = Control::getAngleError(setpoint, coords);
-////        Control::setRobotAngle(angle_err, Odometry::rad2deg(coords[2]),&robot);
-
-////        Control::setRobotPosition(setpoint, coords, &robot);
-////    }
-
-
-
-////    Debug
-////    std::cout<<Odometry::rad2deg(Angle)<<std::endl;
-////    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords)<<std::endl;
-////    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
-////    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
-
-//    if(datacounter % 5)
-//    {
-//        emit uiValuesChanged(coords[0]*100, coords[1]*100, Odometry::rad2deg(coords[2]));
-//    }
-
-//    datacounter++;
-
-//    return 0;
-//}
 
 ///toto je calback na data z lidaru, ktory ste podhodili robotu vo funkcii on_pushButton_9_clicked
 /// vola sa ked dojdu nove data z lidaru
@@ -330,28 +279,42 @@ void MainWindow::getNewFrame()
 
 }
 
-
-
-void MainWindow::on_RegulateButton_clicked()
+void MainWindow::on_tableWidget_cellEntered(int row, int column)
 {
-//    QString x = ui->lineEdit_5->text();
-//    bool is_ok_x;
-//    double coordx = x.toDouble(&is_ok_x);
-
-//    QString y = ui->lineEdit_6->text();
-//    bool is_ok_y;
-//    double coordy = y.toDouble(&is_ok_y);
-
-//    if(is_ok_x && is_ok_y)
-//    {
-
-//    }
-
-//    const double setpoint[2] = {50, 100};
-//    robot.setRobotParameters(ipaddress,53000,5300,std::bind(&MainWindow::regulateThisRobot,this,std::placeholders::_1));
-//    robot.robotStart();
-    robot.setArcSpeed(50,50);
+    QString x = ui->tableWidget->item(0, 0)->text();
+    double val = x.toDouble();
+    std::cout<<val<<std::endl;
+}
 
 
+void MainWindow::on_setButton_clicked()
+{
+
+    for(int i=0; i < ui->tableWidget->rowCount(); i++)
+    {
+        for(int j=0; j < ui->tableWidget->columnCount(); j++)
+        {
+            QString text = ui->tableWidget->item(i,j)->text();
+            bool is_ok;
+            double val = text.toDouble(&is_ok);
+
+            if(is_ok) setpoint_arr[i][j] = val;
+            else std::cout<<"Problem reading setpoint"<<::std::endl;
+
+        }
+    }
+}
+
+
+void MainWindow::on_pushButton_10_clicked()
+{
+    for(int i=0; i < ui->tableWidget->rowCount(); i++)
+    {
+        for(int j=0; j < ui->tableWidget->columnCount(); j++)
+        {
+            setpoint_arr[i][j] = default_setpoint[i][j];
+            ui->tableWidget->setItem(i,j, new QTableWidgetItem(QString::number(default_setpoint[i][j])));
+        }
+    }
 }
 

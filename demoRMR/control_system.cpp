@@ -13,11 +13,13 @@ double Control::getAngleError(double* setpoint_xy, double* coords)
 
 double Control::normalizeAngleError(double error)
 {
-    if(error > M_PI) return -2*M_PI + error;
 
-    if(error < -M_PI) return 2*M_PI + error;
+    if(error > M_PI) return 2*M_PI + error;
+
+    if(error < -M_PI) return -2*M_PI + error;
 
     return error;
+
 }
 
 double Control::robotTargetDist(double* setpoint_xy, double* coords)
@@ -42,7 +44,7 @@ void Control::rampRotationSpeed(double setpoint_angle, double angle)
 
 void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
 {
-    double Kp = 3;
+    double Kp = 10;
     double error = Control::getAngleError(setpoint_xy,coords);
     error = Control::normalizeAngleError(error);
     double rotation_speed = Signal::saturate(Kp*error, M_PI/2, -M_PI/2);
@@ -53,7 +55,7 @@ void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
 
 void Control::setRobotPosition(double* ref, double* coords, Robot* robot)
 {
-    double Kp = 1.5;
+    double Kp = 10;
     double error = Control::robotTargetDist(ref, coords);
     double translation_speed = Signal::saturate(Kp*error, 350, -350);
 
@@ -61,16 +63,16 @@ void Control::setRobotPosition(double* ref, double* coords, Robot* robot)
 
 }
 
-void Control::setRobotArcPos(double* ref, double* coords, Robot* robot)
-{
-    double Kp_trans = 0.75;
-    double Kp_rot = 0.75;
+//void Control::setRobotArcPos(double* ref, double* coords, Robot* robot)
+//{
+//    double Kp_trans = 0.75;
+//    double Kp_rot = 0.75;
 
-    double angle_error = Control::normalizeAngleError(Control::getAngleError(ref, coords));
-    double pos_error = Control::robotTargetDist(ref, coords);
+//    double angle_error = Control::normalizeAngleError(Control::getAngleError(ref, coords));
+//    double pos_error = Control::robotTargetDist(ref, coords);
 
-    robot->setArcSpeed(Kp_trans*pos_error, Kp_rot*angle_error);
-}
+//    robot->setArcSpeed(Kp_trans*pos_error, Kp_rot*angle_error);
+//}
 
 double Signal::saturate(double x, double upper, double lower)
 {

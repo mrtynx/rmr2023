@@ -50,7 +50,7 @@ void Odometry::circularLocalization(int leftDiff, int rightDiff, double* coords)
 
     double x;
     double y;
-
+    // ceknut lenr - lenL --> nan
     x = coords[0] + (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (sin(coords[2]+deltaA) - sin(coords[2]));
     y = coords[1] - (Odometry().wheelBaseDistanceM*(lenL + lenR)) / (2*(lenR - lenL)) * (cos(coords[2]+deltaA) - cos(coords[2]));
 

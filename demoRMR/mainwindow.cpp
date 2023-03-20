@@ -15,8 +15,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
     //tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
-//    ipaddress = "192.168.1.11";
+//    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
+    ipaddress = "192.168.1.11";
   //  cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     datacounter=0;
@@ -113,8 +113,16 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         setpointCounter++;
     }
 
+    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
+    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
 
-    if(!Control::robotReachedTarget(setpoint, coords, 1.0))
+    EncoderLeftPrev = robotdata.EncoderLeft;
+    EncoderRightPrev = robotdata.EncoderRight;
+
+    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
+
+    if(!Control::robotReachedTarget(setpoint, coords, 0.8))
     {
         if(abs(Control::getAngleError(setpoint, coords)) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
 
@@ -130,24 +138,15 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
     else
     {
-        robot.setRotationSpeed(0);
         robot.setTranslationSpeed(0);
     }
-
-    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
-    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
-
-    EncoderLeftPrev = robotdata.EncoderLeft;
-    EncoderRightPrev = robotdata.EncoderRight;
-
-    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
 
 
 
 //    Debug
     std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
 //    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 1.0)<<std::endl;
+    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
     std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;

@@ -4,10 +4,13 @@
 #include <math.h>
 #include "robot.h"
 
+
 //BERKI MARTIN 98310
 
 #include "odometry.h"
 #include "control_system.h"
+#include <fstream>
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -15,8 +18,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
     //tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-//    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
-    ipaddress = "192.168.1.11";
+    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
+//    ipaddress = "192.168.1.11";
   //  cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     datacounter=0;
@@ -144,10 +147,10 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
 
 //    Debug
-    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
+//    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
 //    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
-    std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
+//    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
+//    std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
 
@@ -172,6 +175,23 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
     memcpy( &copyOfLaserData,&laserData,sizeof(LaserMeasurement));
     //tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
     // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
+    static int check = 0;
+
+    if(check == 0)
+    {
+        std::ofstream file("C:\\Users\\Y740\\Desktop\\lidar_log\\lidar.csv", std::ios_base::app);
+        check++;
+        for(int i=0; i<= laserData.numberOfScans; i++)
+        {
+//            int sq = laserData.Data[i].scanQuality;
+            double sa = laserData.Data[i].scanAngle;
+            double sd = laserData.Data[i].scanDistance;
+            file<<sa<<","<< sd<<"\n";
+        }
+        file.close();
+    }
+    else std::cout<<"Failed to open a file"<<"\n";
+
     updateLaserPicture=1;
     update();//tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
 

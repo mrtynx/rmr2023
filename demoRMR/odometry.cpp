@@ -2,6 +2,11 @@
 #include <math.h>
 #include <limits.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 #define M_PI 3.14159265358979323846
 
@@ -66,3 +71,54 @@ void Odometry::circularLocalization(int leftDiff, int rightDiff, double* coords)
 
     coords[2] += deltaA;
 }
+
+
+double Odometry::cosd(double angle)
+{
+    return cos(angle * M_PI / 180.0);
+}
+
+
+double Odometry::sind(double angle)
+{
+    return sin(angle * M_PI / 180.0);
+}
+
+void Odometry::mapAreaToFile(LaserMeasurement* laserData, double* coords, char const *filePath)
+{
+    std::ofstream file(filePath, std::ios_base::app);
+    if(file.is_open())
+    {
+        for(int i=0; i<= laserData->numberOfScans; i++)
+        {
+            double x = coords[0]*100 + laserData->Data[i].scanDistance * Odometry::cosd(coords[2]*180/M_PI - laserData->Data[i].scanAngle)/10;
+            double y = coords[1]*100 + laserData->Data[i].scanDistance * Odometry::sind(coords[2]*180/M_PI - laserData->Data[i].scanAngle)/10;
+            file<<x<<","<<y<<"\n";
+        }
+        file.close();
+    }
+}
+
+void Odometry::mapAreaToGrid(char const *filePath)
+{
+    std::vector<double> x, y;
+    std::ifstream file(filePath);
+    if (file.is_open()) {
+        std::string line;
+        while (getline(file, line)) {
+            std::stringstream ss(line);
+            double val1, val2;
+            char comma;
+            ss >> val1 >> comma >> val2;
+            x.push_back(val1);
+            y.push_back(val2);
+        }
+        file.close();
+    } else {
+        std::cerr << "Error: could not open file " << filePath << std::endl;
+    }
+
+    double x_max = *std::max_element(x.begin(), x.end());
+    std::cout<<x_max<<std::endl;
+}
+

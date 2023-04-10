@@ -122,27 +122,18 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_10">
+       <widget class="QPushButton" name="mappingButton">
         <property name="text">
-         <string>Default</string>
+         <string>Map Area</string>
         </property>
        </widget>
       </item>
       <item>
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
+       <widget class="QPushButton" name="manualModeButton">
+        <property name="text">
+         <string>Manual Mode</string>
         </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::MinimumExpanding</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
+       </widget>
       </item>
       <item>
        <spacer name="verticalSpacer">
@@ -155,7 +146,7 @@
         <property name="sizeHint" stdset="0">
          <size>
           <width>25</width>
-          <height>100</height>
+          <height>50</height>
          </size>
         </property>
        </spacer>

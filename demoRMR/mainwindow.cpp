@@ -10,6 +10,19 @@
 #include "odometry.h"
 #include "control_system.h"
 #include <fstream>
+#include <vector>
+#include <array>
+#include <algorithm>
+
+static double coords[3] = {0.0, 0.0, 0.0};
+
+std::vector<std::array<double, 2>> setpoint_vec;
+
+bool manual_mode = false;
+bool setpoint_mode = false;
+bool mapping_mode = false;
+bool map_now = false;
+bool end_mapping = false;
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -98,61 +111,104 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
 /// vola sa vzdy ked dojdu nove data z robota. nemusite nic riesit, proste sa to stane
 int MainWindow::processThisRobot(TKobukiData robotdata)
 {
-    static int EncoderRightPrev = robotdata.EncoderRight;
-    static int EncoderLeftPrev = robotdata.EncoderLeft;
-    static int EncoderRightDiff = 0;
-    static int EncoderLeftDiff = 0;
-    static int setpointCounter = 0;
-
-    static double coords[3] = {0.0, 0.0, 0.0};
-    static double deadband_angle = 0.15;
-
-    static double setpoint[2];
-
-    if(datacounter == 0)
+    Odometry::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    if(setpoint_mode || mapping_mode)
     {
-        setpoint[0] = setpoint_arr[0][0];
-        setpoint[1] = setpoint_arr[0][1];
-        setpointCounter++;
+        static int EncoderRightPrev = robotdata.EncoderRight;
+        static int EncoderLeftPrev = robotdata.EncoderLeft;
+        static int EncoderRightDiff = 0;
+        static int EncoderLeftDiff = 0;
+        static int setpointCounter = 0;
+
+        static double deadband_angle = 0.01;
+
+        static double setpoint[2];
+
+        if(datacounter == 0)
+        {
+            setpoint[0] = setpoint_vec[0][0];
+            setpoint[1] = setpoint_vec[0][1];
+            setpointCounter++;
+        }
+
+        EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
+        EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
+
+        EncoderLeftPrev = robotdata.EncoderLeft;
+        EncoderRightPrev = robotdata.EncoderRight;
+
+        Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
+        double angle_err = Control::getAngleError(setpoint, coords);
+        angle_err = Control::normalizeAngleError(angle_err);
+
+        if(!Control::robotReachedTarget(setpoint, coords, 1))
+        {           
+
+
+            if(abs(angle_err) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
+
+            else Control::setRobotPosition(setpoint, coords, &robot);
+
+        }
+        else if(setpointCounter < setpoint_vec.size())
+        {
+            if(mapping_mode)
+            {
+                double robot_angle = Odometry::rad2deg(coords[2]);
+
+                if(!((robot_angle >= 89.5) && (robot_angle <= 90.5)))
+                {
+                        Control::setRobotMappingAngle(&robot, M_PI/2-coords[2]);
+                }
+                else
+                {
+                    map_now = true;
+                    while(map_now)
+                    {
+                        ;;
+                    }
+
+
+                    setpoint[0] = setpoint_vec[setpointCounter][0];
+                    setpoint[1] = setpoint_vec[setpointCounter][1];
+                    setpointCounter++;
+                }
+
+            }
+
+
+        }
+
+        else
+        {
+
+            if(mapping_mode && !end_mapping)
+            {
+                map_now = true;
+                while(map_now)
+                {
+                    ;;
+                }
+                end_mapping = true;
+            }
+            robot.setTranslationSpeed(0);
+
+        }
+
+
+        //    Debug
+//            std::cout<<angle_err<<",   "<<std::endl;
+//            std::cout<<Odometry::rad2deg(angle_err1)<<std::endl;
+        //    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
+//            std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
+//            std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
     }
 
-    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
-    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
-
-    EncoderLeftPrev = robotdata.EncoderLeft;
-    EncoderRightPrev = robotdata.EncoderRight;
-
-    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
-
-
-    if(!Control::robotReachedTarget(setpoint, coords, 0.8))
-    {
-        if(abs(Control::getAngleError(setpoint, coords)) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
-
-        else Control::setRobotPosition(setpoint, coords, &robot);
-    }
-
-    else if(setpointCounter < sizeof(setpoint_arr)/sizeof(double)/2)
-    {
-        setpoint[0] = setpoint_arr[setpointCounter][0];
-        setpoint[1] = setpoint_arr[setpointCounter][1];
-        setpointCounter++;
-    }
-
-    else
-    {
-        robot.setTranslationSpeed(0);
-    }
 
 
 
-//    Debug
-//    std::cout<<Control::getAngleError(setpoint, coords)<<std::endl;
-//    std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-//    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
-//    std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
-//    std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
-//    std::cout<<Control::setRobotAngle(-179,Odometry::rad2deg(coords[2]),&robot)<<std::endl;
+
 
     if(datacounter % 5)
     {
@@ -173,24 +229,18 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
 
 
     memcpy( &copyOfLaserData,&laserData,sizeof(LaserMeasurement));
-    //tu mozete robit s datami z lidaru.. napriklad najst prekazky, zapisat do mapy. naplanovat ako sa prekazke vyhnut.
-    // ale nic vypoctovo narocne - to iste vlakno ktore cita data z lidaru
-    static int check = 0;
 
-    if(check == 0)
+    if(map_now)
     {
-        std::ofstream file("C:\\Users\\Y740\\Desktop\\lidar_log\\lidar.csv", std::ios_base::app);
-        check++;
-        for(int i=0; i<= laserData.numberOfScans; i++)
-        {
-//            int sq = laserData.Data[i].scanQuality;
-            double sa = laserData.Data[i].scanAngle;
-            double sd = laserData.Data[i].scanDistance;
-            file<<sa<<","<< sd<<"\n";
-        }
-        file.close();
+        robot.setTranslationSpeed(0);
+        Odometry::mapAreaToFile(&laserData, coords, "C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+        map_now = false;
     }
-    else std::cout<<"Failed to open a file"<<"\n";
+
+    if(end_mapping)
+    {
+
+    }
 
     updateLaserPicture=1;
     update();//tento prikaz prinuti prekreslit obrazovku.. zavola sa paintEvent funkcia
@@ -246,31 +296,31 @@ void MainWindow::on_pushButton_9_clicked() //start button
 void MainWindow::on_pushButton_2_clicked() //forward
 {
     //pohyb dopredu
-    robot.setTranslationSpeed(500);
+    if(manual_mode) robot.setTranslationSpeed(500);
 
 }
 
 void MainWindow::on_pushButton_3_clicked() //back
 {
-    robot.setTranslationSpeed(-250);
+    if(manual_mode) robot.setTranslationSpeed(-250);
 
 }
 
 void MainWindow::on_pushButton_6_clicked() //left
 {
-robot.setRotationSpeed(3.14159/2);
+    if(manual_mode) robot.setRotationSpeed(3.14159/2);
 
 }
 
 void MainWindow::on_pushButton_5_clicked()//right
 {
-robot.setRotationSpeed(-3.14159/2);
+    if(manual_mode) robot.setRotationSpeed(-3.14159/2);
 
 }
 
 void MainWindow::on_pushButton_4_clicked() //stop
 {
-    robot.setTranslationSpeed(0);
+    if(manual_mode) robot.setTranslationSpeed(0);
 
 }
 
@@ -308,32 +358,53 @@ void MainWindow::on_tableWidget_cellEntered(int row, int column)
 
 void MainWindow::on_setButton_clicked()
 {
+    setpoint_mode = true;
 
     for(int i=0; i < ui->tableWidget->rowCount(); i++)
     {
-        for(int j=0; j < ui->tableWidget->columnCount(); j++)
-        {
-            QString text = ui->tableWidget->item(i,j)->text();
-            bool is_ok;
-            double val = text.toDouble(&is_ok);
 
-            if(is_ok) setpoint_arr[i][j] = val;
-            else std::cout<<"Problem reading setpoint"<<::std::endl;
-
-        }
+        QString x_str = ui->tableWidget->item(i,0)->text();
+        QString y_str = ui->tableWidget->item(i,1)->text();
+        setpoint_vec.push_back({MainWindow::Qstr2d(x_str), MainWindow::Qstr2d(y_str)});
     }
 }
 
 
-void MainWindow::on_pushButton_10_clicked()
+
+void MainWindow::on_mappingButton_clicked()
 {
-    for(int i=0; i < ui->tableWidget->rowCount(); i++)
-    {
-        for(int j=0; j < ui->tableWidget->columnCount(); j++)
-        {
-            setpoint_arr[i][j] = default_setpoint[i][j];
-            ui->tableWidget->setItem(i,j, new QTableWidgetItem(QString::number(default_setpoint[i][j])));
-        }
-    }
+    mapping_mode = true;
+
+
+    setpoint_vec.push_back({0.0, 0.0});
+    setpoint_vec.push_back({0.0, 320.0});
+    setpoint_vec.push_back({110.0, 320.0});
+    setpoint_vec.push_back({110.0, 160.0});
+    setpoint_vec.push_back({300.0, 160.0});
+    setpoint_vec.push_back({300.0, 35.0});
+    setpoint_vec.push_back({475.0, 35.0});
+    setpoint_vec.push_back({475.0, 160.0});
+    setpoint_vec.push_back({475.0, 35.0});
+    setpoint_vec.push_back({260.0, 35.0});
+    setpoint_vec.push_back({260.0, 360.0});
+    setpoint_vec.push_back({430.0, 360.0});
 }
 
+
+void MainWindow::on_manualModeButton_clicked()
+{
+    manual_mode = true;
+}
+
+
+double MainWindow::Qstr2d(QString text)
+{
+    bool is_ok;
+    double val = text.toDouble(&is_ok);
+    if(is_ok) return val;
+    else
+    {
+        std::cout<<"Problem type casting QString value"<<std::endl;
+        return -1;
+    }
+}

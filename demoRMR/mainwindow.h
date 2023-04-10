@@ -79,7 +79,12 @@ private slots:
 
     void on_setButton_clicked();
 
-    void on_pushButton_10_clicked();
+
+    void on_mappingButton_clicked();
+
+    void on_manualModeButton_clicked();
+
+    double Qstr2d(QString text);
 
 private:
 
@@ -92,8 +97,6 @@ private:
      Robot robot;
      TKobukiData robotdata;
      int datacounter;
-     double setpoint_arr[3][2];
-     double default_setpoint[3][2] = {{5.0, 25.0}, {3.0, 14.0}, {16.0, 100.0}};
      QTimer *timer;
 
      QJoysticks *instance;

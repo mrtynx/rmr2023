@@ -13,10 +13,9 @@ public:
 
     static bool robotReachedTarget(double* setpoint_xy, double* coords, double bias);
 
-    static void rampRotationSpeed(double setpoint_angle, double angle);
     static void setRobotAngle(double* setpoint_xy, double* coords, Robot* robot);
     static void setRobotPosition(double* ref, double* coords, Robot* robot);
-    static void setRobotArcPos(double* ref, double* coords, Robot* robot);
+    static void setRobotMappingAngle(Robot* robot, double angle);
 };
 
 

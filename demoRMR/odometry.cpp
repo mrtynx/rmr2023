@@ -119,6 +119,11 @@ void Odometry::mapAreaToGrid(char const *filePath)
     }
 
     double x_max = *std::max_element(x.begin(), x.end());
-    std::cout<<x_max<<std::endl;
+    double x_min = *std::min_element(x.begin(), x.end());
+
+    double y_max = *std::max_element(y.begin(), y.end());
+    double y_min = *std::min_element(y.begin(), y.end());
+
+
 }
 

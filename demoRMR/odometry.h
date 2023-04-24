@@ -18,8 +18,6 @@
             static int normalizeDiff(int diff);
             static void curveLocalization(int leftDiff, int rightDiff, double* coords);
             static void circularLocalization(int leftDiff, int rightDiff, double* coords);
-            static void mapAreaToFile(LaserMeasurement* laserData, double* coords, char const *filePath);
-            static void mapAreaToGrid(char const *filePath);
             static double rad2deg(double phi);
 
     };

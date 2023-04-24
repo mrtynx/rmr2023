@@ -9,10 +9,13 @@
 
 #include "odometry.h"
 #include "control_system.h"
+#include "mapping.h"
 #include <fstream>
 #include <vector>
 #include <array>
 #include <algorithm>
+
+using namespace std;
 
 static double coords[3] = {0.0, 0.0, 0.0};
 
@@ -111,7 +114,7 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
 /// vola sa vzdy ked dojdu nove data z robota. nemusite nic riesit, proste sa to stane
 int MainWindow::processThisRobot(TKobukiData robotdata)
 {
-//    Odometry::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+
     if(setpoint_mode || mapping_mode)
     {
         static int EncoderRightPrev = robotdata.EncoderRight;
@@ -233,7 +236,7 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
     if(map_now)
     {
         robot.setTranslationSpeed(0);
-        Odometry::mapAreaToFile(&laserData, coords, "C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+        Mapping::mapAreaToFile(&laserData, coords, "C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
         map_now = false;
     }
 
@@ -408,3 +411,30 @@ double MainWindow::Qstr2d(QString text)
         return -1;
     }
 }
+
+void MainWindow::on_showGridButton_clicked()
+{
+    Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+}
+
+
+void MainWindow::on_floodFillButton_clicked()
+{
+    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    pair<int, int> start = {6, 41};
+    pair<int, int> target = {38, 38};
+    vector<vector<int>> path = Mapping::findPath(grid, start, target);
+    if (!path.empty()) {
+        cout << "Path found:\n";
+        for (const auto &p : path) {
+            cout << "(" << p[0] << ", " << p[1] << ")\n";
+            grid[p[1]][p[0]] = 1;
+
+        }
+        Mapping::gridToFile(grid, "C:\\Users\\mberk\\Desktop\\lidar_log\\grid.csv");
+        Mapping::print_grid(grid);
+    } else {
+        cout << "No path found.\n";
+    }
+}
+

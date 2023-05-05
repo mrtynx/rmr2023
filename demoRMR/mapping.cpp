@@ -48,34 +48,27 @@ vector<vector<int>> Mapping::mapAreaToGrid(char const *filePath)
     std::cout<<y_max<<","<<x_max<<","<<x_min<<","<<y_min<<"\n";
 
 
-    int** grid = (int**)std::malloc((y_max + 1) * sizeof(int*));
+    int** grid = (int**)std::calloc((y_max + 1) , sizeof(int*));
     for (int i = 0; i < (y_max + 1); i++)
     {
-        grid[i] = (int*)std::malloc((x_max + 1) * sizeof(int));
+        grid[i] = (int*)std::calloc((x_max + 1) , sizeof(int));
     }
 
-    for(int i =0; i< y_max; i++)
-    {
-        for(int j=0; j< x_max; j++)
-        {
-            grid[i][j] = 0;
-        }
-    }
 
     for(int i=0; i < x.size(); i++)
     {
         grid[y_max - y[i]][x[i]] = 1;
     }
 
-    for (int i = 0; i < y_max; i++) {
-        for (int j = 0; j < x_max; j++) {
+    for (int i = 0; i < y_max + 1; i++) {
+        for (int j = 0; j < x_max + 1; j++) {
             std::cout << grid[i][j] << " ";
         }
         std::cout << std::endl;
     }
 
 
-    vector<vector<int>> grid_vec(y_max, vector<int>(x_max, 0));
+    vector<vector<int>> grid_vec(y_max + 1, vector<int>(x_max + 1, 0));
     for(int i=0; i<y_max; i++)
     {
         for(int j=0; j<x_max; j++)

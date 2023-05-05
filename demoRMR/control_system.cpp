@@ -40,9 +40,9 @@ bool Control::robotReachedTarget(double* setpoint_xy, double* coords, double bia
 
 void Control::setRobotMappingAngle(Robot* robot, double angle)
 {
-    double Kp = 10;
+    double Kp = 5;
     double error = Control::normalizeAngleError(angle);
-    double rotation_speed = Signal::saturate(Kp*error, M_PI/2, -M_PI/2);
+    double rotation_speed = Signal::saturate(Kp*error, M_PI/3, -M_PI/3);
 
     robot->setRotationSpeed(rotation_speed);
 }
@@ -53,7 +53,7 @@ void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
     double Kp = 10;
     double error = Control::getAngleError(setpoint_xy,coords);
     error = Control::normalizeAngleError(error);
-    double rotation_speed = Signal::saturate(Kp*error, M_PI/2, -M_PI/2);
+    double rotation_speed = Signal::saturate(Kp*error, M_PI/3, -M_PI/3);
 
     robot->setRotationSpeed(rotation_speed);
 
@@ -77,4 +77,28 @@ double Signal::saturate(double x, double upper, double lower)
     if (x > upper) return upper;
 
     return x;
+}
+
+
+void Control::setpointRamp(double* setpoint_ramp, double* setpoint, double delta)
+{
+    if(setpoint[0] < 0 && setpoint_ramp[0] > setpoint[0])
+    {
+        setpoint_ramp[0] -= delta;
+    }
+
+    if(setpoint[1] < 0 && setpoint_ramp[1] > setpoint[1])
+    {
+        setpoint_ramp[1] -= delta;
+    }
+
+    if(setpoint[0] > 0 && setpoint_ramp[0] < setpoint[0])
+    {
+        setpoint_ramp[0] += delta;
+    }
+
+    if(setpoint[1] > 0 && setpoint_ramp[1] < setpoint[1])
+    {
+        setpoint_ramp[1] += delta;
+    }
 }

@@ -27,6 +27,9 @@ bool mapping_mode = false;
 bool map_now = false;
 bool end_mapping = false;
 
+double setpoint_ramp_pos[2] = {0.0, 0.0};
+double setpoint_ramp_rot[2] = {0.0, 0.0};
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -123,7 +126,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         static int EncoderLeftDiff = 0;
         static int setpointCounter = 0;
 
-        static double deadband_angle = 0.01;
+        static double deadband_angle = 0.08;
 
         static double setpoint[2];
 
@@ -149,9 +152,18 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         {           
 
 
-            if(abs(angle_err) > deadband_angle) Control::setRobotAngle(setpoint, coords, &robot);
+            if(abs(angle_err) > deadband_angle)
+            {
+                Control::setpointRamp(setpoint_ramp_rot, setpoint, 0.1);
+                Control::setRobotAngle(setpoint_ramp_rot, coords, &robot);
+            }
 
-            else Control::setRobotPosition(setpoint, coords, &robot);
+
+            else
+            {
+                Control::setpointRamp(setpoint_ramp_pos, setpoint, 0.1);
+                Control::setRobotPosition(setpoint_ramp_pos, coords, &robot);
+            }
 
         }
         else if(setpointCounter < setpoint_vec.size())
@@ -173,6 +185,10 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
                     }
 
 
+                    setpoint_ramp_pos[0] = 0;
+                    setpoint_ramp_pos[1] = 0;
+                    setpoint_ramp_rot[0] = 0;
+                    setpoint_ramp_rot[1] = 0;
                     setpoint[0] = setpoint_vec[setpointCounter][0];
                     setpoint[1] = setpoint_vec[setpointCounter][1];
                     setpointCounter++;
@@ -236,7 +252,7 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
     if(map_now)
     {
         robot.setTranslationSpeed(0);
-        Mapping::mapAreaToFile(&laserData, coords, "C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+        Mapping::mapAreaToFile(&laserData, coords, "C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
         map_now = false;
     }
 
@@ -381,8 +397,8 @@ void MainWindow::on_mappingButton_clicked()
 
     setpoint_vec.push_back({0.0, 0.0});
     setpoint_vec.push_back({0.0, 320.0});
-    setpoint_vec.push_back({110.0, 320.0});
-    setpoint_vec.push_back({110.0, 160.0});
+    setpoint_vec.push_back({95.0, 320.0});
+    setpoint_vec.push_back({95.0, 160.0});
     setpoint_vec.push_back({300.0, 160.0});
     setpoint_vec.push_back({300.0, 35.0});
     setpoint_vec.push_back({475.0, 35.0});
@@ -414,13 +430,13 @@ double MainWindow::Qstr2d(QString text)
 
 void MainWindow::on_showGridButton_clicked()
 {
-    Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    Mapping::mapAreaToGrid("C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
 }
 
 
 void MainWindow::on_floodFillButton_clicked()
 {
-    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
     pair<int, int> start = {6, 41};
     pair<int, int> target = {38, 38};
     vector<vector<int>> path = Mapping::findPath(grid, start, target);
@@ -431,7 +447,7 @@ void MainWindow::on_floodFillButton_clicked()
             grid[p[1]][p[0]] = 1;
 
         }
-        Mapping::gridToFile(grid, "C:\\Users\\mberk\\Desktop\\lidar_log\\grid.csv");
+        Mapping::gridToFile(grid, "C:\\Users\\Y740\\Desktop\\lidar_log\\grid.csv");
         Mapping::print_grid(grid);
     } else {
         cout << "No path found.\n";

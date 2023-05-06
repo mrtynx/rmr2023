@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "qcustomplot.h"
 #include <QMainWindow>
 #include <QTimer>
 #ifdef _WIN32
@@ -89,6 +90,9 @@ private slots:
     void on_showGridButton_clicked();
 
     void on_floodFillButton_clicked();
+
+    void setup_dataPlot();
+
 
 private:
 

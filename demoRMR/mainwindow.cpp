@@ -27,9 +27,11 @@ bool mapping_mode = false;
 bool map_now = false;
 bool end_mapping = false;
 
-double setpoint_ramp_pos[2] = {0.0, 0.0};
-double setpoint_ramp_rot[2] = {0.0, 0.0};
+double setpoint_ramped[2] = {0.0, 0.0};
 
+vector<pair<int, int>> map_vec;
+
+QVector<double> x(100), y(100);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -51,7 +53,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     datacounter=0;
-
+    setup_dataPlot();
 
 }
 
@@ -111,6 +113,9 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
      ui->lineEdit_2->setText(QString::number(robotX));
      ui->lineEdit_3->setText(QString::number(robotY));
      ui->lineEdit_4->setText(QString::number(robotFi));
+     ui->dataPlot->replot();
+     ui->DistancePlot->replot();
+//     ui->distancePlotY->replot();
 }
 
 ///toto je calback na data z robota, ktory ste podhodili robotu vo funkcii on_pushButton_9_clicked
@@ -118,12 +123,14 @@ void  MainWindow::setUiValues(double robotX,double robotY,double robotFi)
 int MainWindow::processThisRobot(TKobukiData robotdata)
 {
 
+    static int EncoderRightPrev = robotdata.EncoderRight;
+    static int EncoderLeftPrev = robotdata.EncoderLeft;
+    static int EncoderRightDiff = 0;
+    static int EncoderLeftDiff = 0;
+
     if(setpoint_mode || mapping_mode)
     {
-        static int EncoderRightPrev = robotdata.EncoderRight;
-        static int EncoderLeftPrev = robotdata.EncoderLeft;
-        static int EncoderRightDiff = 0;
-        static int EncoderLeftDiff = 0;
+
         static int setpointCounter = 0;
 
         static double deadband_angle = 0.08;
@@ -148,21 +155,21 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         double angle_err = Control::getAngleError(setpoint, coords);
         angle_err = Control::normalizeAngleError(angle_err);
 
+
         if(!Control::robotReachedTarget(setpoint, coords, 1))
         {           
+            Signal::setpointRamp(setpoint_ramped, setpoint, 1);
 
-
-            if(abs(angle_err) > deadband_angle)
+            if(fabs(angle_err) > deadband_angle)
             {
-                Control::setpointRamp(setpoint_ramp_rot, setpoint, 0.1);
-                Control::setRobotAngle(setpoint_ramp_rot, coords, &robot);
+                Control::setRobotAngle(setpoint_ramped, coords, &robot);
             }
 
 
             else
             {
-                Control::setpointRamp(setpoint_ramp_pos, setpoint, 0.1);
-                Control::setRobotPosition(setpoint_ramp_pos, coords, &robot);
+
+                Control::setRobotPosition(setpoint_ramped, coords, &robot);
             }
 
         }
@@ -184,11 +191,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
                         ;;
                     }
 
-
-                    setpoint_ramp_pos[0] = 0;
-                    setpoint_ramp_pos[1] = 0;
-                    setpoint_ramp_rot[0] = 0;
-                    setpoint_ramp_rot[1] = 0;
+                    setpoint_ramped[0] = 0;
+                    setpoint_ramped[1] = 0;
                     setpoint[0] = setpoint_vec[setpointCounter][0];
                     setpoint[1] = setpoint_vec[setpointCounter][1];
                     setpointCounter++;
@@ -218,10 +222,11 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
         //    Debug
 //            std::cout<<angle_err<<",   "<<std::endl;
-//            std::cout<<Odometry::rad2deg(angle_err1)<<std::endl;
+//            std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
         //    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
 //            std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //            std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
+//              cout<<setpoint_ramped[0]<<","<<setpoint_ramped[1]<<endl;;
     }
 
 
@@ -229,9 +234,34 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
 
 
-    if(datacounter % 5)
+    if(datacounter % 2)
     {
         emit uiValuesChanged(coords[0]*100, coords[1]*100, Odometry::rad2deg(coords[2]));
+        QVector<double> x(1), angle(1), distance_x(1), distance_y(1);
+        x[0] = datacounter;
+        angle[0] = Odometry::rad2deg(coords[2]);
+
+        ui->dataPlot->graph(0)->addData(x,angle);
+        ui->dataPlot->graph(0)->rescaleAxes();
+
+        distance_x[0] = EncoderLeftDiff;
+        ui->DistancePlot->graph(0)->addData(x, distance_x);
+        ui->DistancePlot->graph(0)->rescaleAxes();
+
+        distance_y[0] = EncoderRightDiff;
+        ui->DistancePlot->graph(1)->addData(x, distance_y);
+        ui->DistancePlot->graph(1)->rescaleAxes();
+
+
+
+    }
+
+    if(datacounter % 100 == 0)
+    {
+        ui->dataPlot->graph(0)->data()->clear();
+        ui->DistancePlot->graph(0)->data()->clear();
+        ui->DistancePlot->graph(1)->data()->clear();
+//        ui->distancePlotY->graph(0)->data()->clear();
     }
 
     datacounter++;
@@ -252,7 +282,8 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
     if(map_now)
     {
         robot.setTranslationSpeed(0);
-        Mapping::mapAreaToFile(&laserData, coords, "C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
+//        Mapping::mapAreaToFile(&laserData, coords, "C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+        Mapping::mapAreaToVec(&laserData, coords, &map_vec);
         map_now = false;
     }
 
@@ -430,27 +461,59 @@ double MainWindow::Qstr2d(QString text)
 
 void MainWindow::on_showGridButton_clicked()
 {
-    Mapping::mapAreaToGrid("C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
+//    Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
+    Mapping::print_grid(grid);
 }
 
 
 void MainWindow::on_floodFillButton_clicked()
 {
-    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\Y740\\Desktop\\lidar_log\\data_lidar.csv");
-    pair<int, int> start = {6, 41};
-    pair<int, int> target = {38, 38};
-    vector<vector<int>> path = Mapping::findPath(grid, start, target);
-    if (!path.empty()) {
-        cout << "Path found:\n";
-        for (const auto &p : path) {
-            cout << "(" << p[0] << ", " << p[1] << ")\n";
-            grid[p[1]][p[0]] = 1;
+//    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
+    vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
+    int start_x = 6;
+    int start_y = 41;
+    int target_x = 38;
+    int target_y = 38;
+    Mapping::print_grid(grid);
+    auto ffl_grid = Mapping::floodFill(grid, start_x, start_y, target_x, target_y);
+    auto path = Mapping::getPath(ffl_grid ,start_x, start_y);
+    Mapping::printPath(grid, path);
 
-        }
-        Mapping::gridToFile(grid, "C:\\Users\\Y740\\Desktop\\lidar_log\\grid.csv");
-        Mapping::print_grid(grid);
-    } else {
-        cout << "No path found.\n";
-    }
 }
+
+
+void MainWindow::setup_dataPlot()
+{
+    ui->dataPlot->addGraph();
+    ui->dataPlot->graph(0)->setPen(QPen(Qt::blue));
+    ui->dataPlot->xAxis->setVisible(true);
+    ui->dataPlot->yAxis->setVisible(true);
+    ui->dataPlot->xAxis->setTickLabels(false);
+    ui->dataPlot->yAxis->setTickLabels(true);
+
+
+    ui->DistancePlot->addGraph();
+    ui->DistancePlot->graph(0)->setPen(QPen(Qt::red));
+    ui->DistancePlot->xAxis->setVisible(true);
+    ui->DistancePlot->yAxis->setVisible(true);
+    ui->DistancePlot->xAxis->setTickLabels(false);
+    ui->DistancePlot->yAxis->setTickLabels(false);
+
+    ui->DistancePlot->addGraph();
+    ui->DistancePlot->graph(1)->setPen(QPen(Qt::blue));
+    ui->DistancePlot->xAxis2->setVisible(true);
+    ui->DistancePlot->yAxis2->setVisible(true);
+    ui->DistancePlot->xAxis2->setTickLabels(false);
+    ui->DistancePlot->yAxis2->setTickLabels(false);
+
+//    ui->distancePlotY->addGraph();
+//    ui->distancePlotY->graph(0)->setPen(QPen(Qt::blue));
+//    ui->distancePlotY->xAxis->setVisible(true);
+//    ui->distancePlotY->yAxis->setVisible(true);
+//    ui->distancePlotY->xAxis->setTickLabels(false);
+//    ui->distancePlotY->yAxis->setTickLabels(true);
+}
+
+
 

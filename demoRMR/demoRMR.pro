@@ -6,7 +6,7 @@
 
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 include ($$PWD/../QJoysticks-master/QJoysticks.pri)
 TARGET = demoRMR
 TEMPLATE = app
@@ -83,14 +83,14 @@ INCLUDEPATH += /usr/local/include/opencv4/
 SOURCES += main.cpp\
         control_system.cpp \
         mainwindow.cpp \
-        map_loader.cpp \
         mapping.cpp \
-        odometry.cpp
+        odometry.cpp \
+        qcustomplot.cpp
 
 HEADERS  += mainwindow.h \
     control_system.h \
-    map_loader.h \
     mapping.h \
-    odometry.h
+    odometry.h \
+    qcustomplot.h
 
 FORMS    += mainwindow.ui

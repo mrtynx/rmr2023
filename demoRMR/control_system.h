@@ -3,6 +3,7 @@
 
 #include "robot.h"
 
+
 class Control
 {
 public:
@@ -16,7 +17,7 @@ public:
     static void setRobotAngle(double* setpoint_xy, double* coords, Robot* robot);
     static void setRobotPosition(double* ref, double* coords, Robot* robot);
     static void setRobotMappingAngle(Robot* robot, double angle);
-    static void setpointRamp(double* setpoint_ramp, double* setpoint, double delta);
+
 };
 
 
@@ -24,6 +25,8 @@ class Signal
 {
 public:
     static double saturate(double x, double upper, double lower);
+    static void setpointRamp(double* setpoint_ramp, double* setpoint, double delta);
+    static int sgn(double v);
 };
 
 #endif // CONTROL_SYSTEM_H

@@ -80,25 +80,24 @@ double Signal::saturate(double x, double upper, double lower)
 }
 
 
-void Control::setpointRamp(double* setpoint_ramp, double* setpoint, double delta)
+int Signal::sgn(double v)
 {
-    if(setpoint[0] < 0 && setpoint_ramp[0] > setpoint[0])
-    {
-        setpoint_ramp[0] -= delta;
-    }
+    return ( ( (v) < 0 )  ?  -1   : ( (v) > 0 ) );
+}
 
-    if(setpoint[1] < 0 && setpoint_ramp[1] > setpoint[1])
-    {
-        setpoint_ramp[1] -= delta;
-    }
 
-    if(setpoint[0] > 0 && setpoint_ramp[0] < setpoint[0])
+void Signal::setpointRamp(double* setpoint_ramp, double* setpoint, double delta)
+{
+
+    if(setpoint_ramp[0] < setpoint[0])
     {
         setpoint_ramp[0] += delta;
     }
 
-    if(setpoint[1] > 0 && setpoint_ramp[1] < setpoint[1])
+    if(setpoint_ramp[1] < setpoint[1])
     {
         setpoint_ramp[1] += delta;
     }
+
 }
+

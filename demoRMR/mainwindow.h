@@ -94,6 +94,8 @@ private slots:
     void setup_dataPlot();
 
 
+    void on_navigateButton_clicked();
+
 private:
 
     //--skuste tu nic nevymazat... pridavajte co chcete, ale pri odoberani by sa mohol stat nejaky drobny problem, co bude vyhadzovat chyby

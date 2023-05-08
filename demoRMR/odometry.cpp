@@ -10,6 +10,8 @@
 
 #define M_PI 3.14159265358979323846
 
+using namespace std;
+
 
 double Odometry::getWheelDistance(int diff)
 {
@@ -84,6 +86,22 @@ double Odometry::sind(double angle)
     return sin(angle * M_PI / 180.0);
 }
 
+
+double Odometry::euclid2d(double* coords1, double* coords2)
+{
+    double dx = coords2[0] - coords1[0];
+    double dy = coords2[1] - coords1[1];
+
+    return sqrt(dx*dx + dy*dy);
+}
+
+
+bool Odometry::point_in_radius(pair<double, double> center, double radius, pair<double, double> point)
+{
+    double distance = sqrt(pow(point.first - center.first, 2) + pow(point.second - center.second, 2));
+
+    return distance <= radius;
+}
 
 
 

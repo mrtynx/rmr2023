@@ -84,12 +84,14 @@ SOURCES += main.cpp\
         control_system.cpp \
         mainwindow.cpp \
         mapping.cpp \
+        navigation.cpp \
         odometry.cpp \
         qcustomplot.cpp
 
 HEADERS  += mainwindow.h \
     control_system.h \
     mapping.h \
+    navigation.h \
     odometry.h \
     qcustomplot.h
 

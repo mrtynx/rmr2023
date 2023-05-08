@@ -5,6 +5,8 @@
 #include "rplidar.h"
 #include <fstream>
 
+using namespace std;
+
     class Odometry
     {
 
@@ -19,6 +21,8 @@
             static void curveLocalization(int leftDiff, int rightDiff, double* coords);
             static void circularLocalization(int leftDiff, int rightDiff, double* coords);
             static double rad2deg(double phi);
+            static double euclid2d(double* coords1, double* coords2);
+            static bool point_in_radius(pair<double, double> center, double radius, pair<double, double> point);
 
     };
 

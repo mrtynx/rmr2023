@@ -10,6 +10,8 @@
 #include "odometry.h"
 #include "control_system.h"
 #include "mapping.h"
+#include "navigation.h"
+
 #include <fstream>
 #include <vector>
 #include <array>
@@ -21,15 +23,21 @@ static double coords[3] = {0.0, 0.0, 0.0};
 
 std::vector<std::array<double, 2>> setpoint_vec;
 
+
 bool manual_mode = false;
 bool setpoint_mode = false;
 bool mapping_mode = false;
 bool map_now = false;
 bool end_mapping = false;
+bool navigation_mode = false;
+bool wall_align = false;
+bool wall_mode = false;
 
 double setpoint_ramped[2] = {0.0, 0.0};
 
 vector<pair<int, int>> map_vec;
+vector<Obstacle> obstacles;
+
 
 QVector<double> x(100), y(100);
 
@@ -101,6 +109,36 @@ void MainWindow::paintEvent(QPaintEvent *event)
                 if(rect.contains(xp,yp))//ak je bod vo vnutri nasho obdlznika tak iba vtedy budem chciet kreslit
                     painter.drawEllipse(QPoint(xp, yp),2,2);
             }
+
+
+            ////////////////////////////////////////////////////////////////////
+            if(navigation_mode && !obstacles.empty())
+            {
+
+                vector<Obstacle>* query = Navigation::queryObstacles(obstacles, "front_narrow");
+                if(query == nullptr)
+                {
+                    cout<<"query is nullptr"<<endl;
+                    return;
+                }
+                pero.setColor(Qt::red);
+                painter.setPen(pero);
+
+                for(Obstacle& obstacle: *query)
+                {
+//                    cout<<obstacle.scan_distance<<" , "<<obstacle.scan_angle<<endl;
+                    int dist = obstacle.scan_distance/2;
+                    int xp=rect.width()-(rect.width()/2+dist*2*sin((360.0-obstacle.scan_angle)*3.14159/180.0))+rect.topLeft().x(); //prepocet do obrazovky
+                    int yp=rect.height()-(rect.height()/2+dist*2*cos((360.0-obstacle.scan_angle)*3.14159/180.0))+rect.topLeft().y();//prepocet do obrazovky
+//                    cout<<"Obstacle X,Y, dist: "<<obstacle.x<<" , "<<obstacle.y<<" , "<<obstacle.scan_distance<<endl;
+                    if(rect.contains(xp,yp))
+                    {
+                        painter.drawEllipse(QPoint(xp, yp),2,2);
+                    }
+                }
+            }
+
+
         }
     }
 }
@@ -128,14 +166,20 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int EncoderRightDiff = 0;
     static int EncoderLeftDiff = 0;
 
+    static double deadband_angle = 0.08;
+    static double setpoint[2];
+
+    EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
+    EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
+
+    EncoderLeftPrev = robotdata.EncoderLeft;
+    EncoderRightPrev = robotdata.EncoderRight;
+
+    Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
+
     if(setpoint_mode || mapping_mode)
     {
-
         static int setpointCounter = 0;
-
-        static double deadband_angle = 0.08;
-
-        static double setpoint[2];
 
         if(datacounter == 0)
         {
@@ -143,14 +187,6 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
             setpoint[1] = setpoint_vec[0][1];
             setpointCounter++;
         }
-
-        EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
-        EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
-
-        EncoderLeftPrev = robotdata.EncoderLeft;
-        EncoderRightPrev = robotdata.EncoderRight;
-
-        Odometry::curveLocalization(EncoderLeftDiff, EncoderRightDiff, coords);
 
         double angle_err = Control::getAngleError(setpoint, coords);
         angle_err = Control::normalizeAngleError(angle_err);
@@ -229,6 +265,102 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 //              cout<<setpoint_ramped[0]<<","<<setpoint_ramped[1]<<endl;;
     }
 
+    if(navigation_mode && !manual_mode)
+    {
+        setpoint[0] = 400;
+        setpoint[1] = 360;
+
+        static bool left_wall = false;
+        static bool right_wall = false;
+
+        static double wall_setpoint[2] = {0.0, 0.0};
+
+
+        double angle_err = Control::getAngleError(setpoint, coords);
+        angle_err = Control::normalizeAngleError(angle_err);
+
+
+        if(!Control::robotReachedTarget(setpoint, coords, 1) && !obstacles.empty())
+        {
+            vector<Obstacle>* front_query = Navigation::queryObstacles(obstacles, "front_narrow");
+            Obstacle mean_front = Navigation::queryMean(*front_query);
+            cout<<mean_front.scan_distance<<endl;
+
+            if((mean_front.scan_distance > 65) && !front_query->empty() && front_query != nullptr)
+            {
+                left_wall = false;
+                right_wall = false;
+
+                Signal::setpointRamp(setpoint_ramped, setpoint, 1);
+
+                if(fabs(angle_err) > deadband_angle)
+                {
+                    Control::setRobotAngle(setpoint_ramped, coords, &robot);
+                }
+
+
+                else
+                {
+                    Control::setRobotPosition(setpoint_ramped, coords, &robot);
+                }
+            }
+            else if(wall_align)
+            {
+                //narovnat sa na stenu cez x,y setpoint
+//                if(right_wall && )
+            }
+            else
+            {
+                robot.setTranslationSpeed(0);
+
+
+                vector<Obstacle>* left_query = Navigation::queryObstacles(obstacles, "left_narrow");
+                vector<Obstacle>* right_query = Navigation::queryObstacles(obstacles, "right_narrow");
+
+
+                if(left_query->size() > right_query->size())
+                {
+                    left_wall = true;
+                }
+                else if(left_query->size() < right_query->size())
+                {
+                    right_wall = true;
+                }
+
+                Obstacle front_scan = Navigation::queryMean(*front_query);
+                cout<<front_scan.x<<" , "<<front_scan.y<<endl;
+
+                wall_align = true;
+
+
+
+
+//                vector<Obstacle>* query = Navigation::queryObstacles(obstacles, "front_narrow");
+//                if(query != nullptr)
+//                {
+//                    double avg = 0;
+//                    for(Obstacle obstacle: *query)
+//                    {
+//                        avg += obstacle.scan_angle/(query->size());
+//                    }
+//                    cout<<avg<<endl;
+//                   double points =  Navigation::chooseShorterPath(query, coords, setpoint);
+//                   if(0 < points)
+//                   {
+//                       cout<<points<<endl;
+//                       wall_align = true;
+//                   }
+
+
+//                }
+
+
+            }
+
+
+        }
+    }
+
 
 
 
@@ -262,6 +394,11 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         ui->DistancePlot->graph(0)->data()->clear();
         ui->DistancePlot->graph(1)->data()->clear();
 //        ui->distancePlotY->graph(0)->data()->clear();
+
+        for(Obstacle& obstacle: obstacles)
+        {
+//            cout<<obstacle.x<<" , "<<obstacle.y<<endl;
+        }
     }
 
     datacounter++;
@@ -290,6 +427,12 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
     if(end_mapping)
     {
 
+    }
+
+    if(navigation_mode)
+    {
+        obstacles.clear();
+        Navigation::detectObstacles(&laserData, coords, &obstacles);
     }
 
     updateLaserPicture=1;
@@ -516,4 +659,11 @@ void MainWindow::setup_dataPlot()
 }
 
 
+
+
+void MainWindow::on_navigateButton_clicked()
+{
+    navigation_mode = true;
+
+}
 

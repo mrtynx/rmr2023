@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>911</width>
-    <height>831</height>
+    <height>735</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -88,36 +88,13 @@
      </property>
     </widget>
    </widget>
-   <widget class="QCustomPlot" name="distancePlotY" native="true">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>670</y>
-      <width>601</width>
-      <height>101</height>
-     </rect>
-    </property>
-    <widget class="QLabel" name="label_6">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>0</y>
-       <width>81</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Pravy enkoder</string>
-     </property>
-    </widget>
-   </widget>
    <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>640</x>
-      <y>180</y>
+      <y>150</y>
       <width>251</width>
-      <height>481</height>
+      <height>511</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -242,6 +219,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="navigateButton">
+       <property name="text">
+        <string>Navigate</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="mappingButton">
        <property name="text">
         <string>Map Area</string>
@@ -350,7 +334,7 @@
       <x>640</x>
       <y>90</y>
       <width>251</width>
-      <height>86</height>
+      <height>61</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -370,22 +354,6 @@
        </property>
        <property name="text">
         <string>Start</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLineEdit" name="lineEdit">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>162</width>
-         <height>0</height>
-        </size>
        </property>
       </widget>
      </item>

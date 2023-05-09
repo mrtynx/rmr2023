@@ -47,8 +47,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
     //tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
-//    ipaddress = "192.168.1.11";
+//    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
+    ipaddress = "192.168.1.14";
   //  cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     datacounter=0;
@@ -169,6 +169,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static double deadband_angle = 0.08;
     static double setpoint[2];
 
+    static bool reset_ramp = false;
+
     EncoderLeftDiff =  Odometry::normalizeDiff(int(robotdata.EncoderLeft - EncoderLeftPrev));
     EncoderRightDiff =  Odometry::normalizeDiff(int(robotdata.EncoderRight - EncoderRightPrev));
 
@@ -192,47 +194,58 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         angle_err = Control::normalizeAngleError(angle_err);
 
 
-        if(!Control::robotReachedTarget(setpoint, coords, 1))
+        if(!Control::robotReachedTarget(setpoint, coords, 5))
         {           
-            Signal::setpointRamp(setpoint_ramped, setpoint, 1);
+//            Signal::setpointRamp(setpoint_ramped, setpoint, 0.5);
 
             if(fabs(angle_err) > deadband_angle)
             {
-                Control::setRobotAngle(setpoint_ramped, coords, &robot);
+                Control::setRobotAngle(setpoint, coords, &robot);
+                reset_ramp = true;
+
             }
-
-
             else
             {
-
-                Control::setRobotPosition(setpoint_ramped, coords, &robot);
+                Control::setRobotPosition(setpoint, coords, reset_ramp, &robot);
+                reset_ramp = false;
             }
-
         }
         else if(setpointCounter < setpoint_vec.size())
         {
             if(mapping_mode)
             {
-                double robot_angle = Odometry::rad2deg(coords[2]);
+//                double robot_angle = Odometry::rad2deg(coords[2]);
 
-                if(!((robot_angle >= 89.5) && (robot_angle <= 90.5)))
-                {
-                        Control::setRobotMappingAngle(&robot, M_PI/2-coords[2]);
-                }
-                else
-                {
-                    map_now = true;
-                    while(map_now)
-                    {
-                        ;;
-                    }
+//                if(!((robot_angle >= 89.5) && (robot_angle <= 90.5)))
+//                {
+//                        Control::setRobotMappingAngle(&robot, M_PI/2-coords[2]);
+//                }
+//                else
+//                {
+//                    map_now = true;
+//                    while(map_now)
+//                    {
+//                        ;;
+//                    }
 
-                    setpoint_ramped[0] = 0;
-                    setpoint_ramped[1] = 0;
-                    setpoint[0] = setpoint_vec[setpointCounter][0];
-                    setpoint[1] = setpoint_vec[setpointCounter][1];
-                    setpointCounter++;
+//                    setpoint_ramped[0] = 0;
+//                    setpoint_ramped[1] = 0;
+//                    setpoint[0] = setpoint_vec[setpointCounter][0];
+//                    setpoint[1] = setpoint_vec[setpointCounter][1];
+//                    setpointCounter++;
+//                }
+//                robot.setTranslationSpeed(0);
+                map_now = true;
+                while(map_now)
+                {
+                    ;;//sleep
                 }
+
+                setpoint_ramped[0] = 0;
+                setpoint_ramped[1] = 0;
+                setpoint[0] = setpoint_vec[setpointCounter][0];
+                setpoint[1] = setpoint_vec[setpointCounter][1];
+                setpointCounter++;
 
             }
 
@@ -259,7 +272,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         //    Debug
 //            std::cout<<angle_err<<",   "<<std::endl;
 //            std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-        //    std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 0.5)<<std::endl;
+            std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 1)<<std::endl;
 //            std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //            std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //              cout<<setpoint_ramped[0]<<","<<setpoint_ramped[1]<<endl;;
@@ -301,7 +314,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
                 else
                 {
-                    Control::setRobotPosition(setpoint_ramped, coords, &robot);
+                    Control::setRobotPosition(setpoint_ramped, coords, reset_ramp, &robot);
                 }
             }
             else if(wall_align)

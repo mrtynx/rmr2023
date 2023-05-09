@@ -50,7 +50,7 @@ void Control::setRobotMappingAngle(Robot* robot, double angle)
 
 void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
 {
-    double Kp = 10;
+    double Kp = 3;
     double error = Control::getAngleError(setpoint_xy,coords);
     error = Control::normalizeAngleError(error);
     double rotation_speed = Signal::saturate(Kp*error, M_PI/3, -M_PI/3);
@@ -59,11 +59,23 @@ void Control::setRobotAngle(double* setpoint_xy, double* coords, Robot* robot)
 
 }
 
-void Control::setRobotPosition(double* ref, double* coords, Robot* robot)
+void Control::setRobotPosition(double* ref, double* coords, bool reset_ramp, Robot* robot)
 {
-    double Kp = 10;
+    static double dt = 0;
+    if(dt < 100)
+    {
+        dt++;
+    }
+
+    if(reset_ramp)
+    {
+        dt = 25;
+    }
+
+
+    double Kp = 3;
     double error = Control::robotTargetDist(ref, coords);
-    double translation_speed = Signal::saturate(Kp*error, 350, -350);
+    double translation_speed = Signal::saturate(Kp*error, 5*dt, -5*dt);
 
     robot->setTranslationSpeed(translation_speed);
 

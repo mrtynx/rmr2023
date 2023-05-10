@@ -101,23 +101,23 @@ using namespace std;
 //}
 
 
-//void Mapping::gridToFile(vector<vector<int>> &grid, char const *filePath)
-//{
-//    std::ofstream file(filePath);
+void Mapping::gridToFile(vector<vector<int>> &grid, char const *filePath)
+{
+    std::ofstream file(filePath);
 
-//    for (const auto& row : grid) {
-//        for (size_t i = 0; i < row.size(); i++) {
-//            file << row[i];
-//            if (i < row.size() - 1) {
-//                file << ",";
-//            }
-//        }
-//        file << std::endl;
-//    }
+    for (const auto& row : grid) {
+        for (size_t i = 0; i < row.size(); i++) {
+            file << row[i];
+            if (i < row.size() - 1) {
+                file << ",";
+            }
+        }
+        file << std::endl;
+    }
 
-//    file.close();
+    file.close();
 
-//}
+}
 
 
 
@@ -212,6 +212,25 @@ void Mapping::print_grid(const std::vector<std::vector<int>>& grid)
 
 
 
+vector<vector<int>> Mapping::gridFromFile(char const *filePath)
+{
+    ifstream file(filePath);
+    vector<vector<int>> data;
+    string line;
+    while (getline(file, line)) {
+        vector<int> row;
+        stringstream ss(line);
+        string cell;
+        while (getline(ss, cell, ',')) {
+            row.push_back(stoi(cell));
+        }
+        data.push_back(row);
+    }
+    return data;
+}
+
+
+
 bool Mapping::isValid(vector<vector<int>>& grid, int y, int x) {
     return ((y >= 0) && (y < grid.size()) && (x >= 0) && (x < grid[0].size())) ;
 }
@@ -299,10 +318,6 @@ vector<pair<int,int>> Mapping::getPath(vector<vector<int>> grid, int start_x, in
         point_val = grid[curr_point.first][curr_point.second];
     }
 
-    for (const auto& p : path) {
-        cout << "(" << p.first << ", " << p.second << ")" << endl;
-    }
-
     return path;
 }
 
@@ -317,4 +332,61 @@ void Mapping::printPath(vector<vector<int>> grid, vector<pair<int,int>> path)
 
 
 
+vector<vector<int>> Mapping::enlargeObstacles(const vector<vector<int>>& grid) {
+    int numRows = grid.size();
+    int numCols = grid[0].size();
 
+    vector<vector<int>> enlargedGrid(numRows, vector<int>(numCols, 0));
+
+    for (int row = 0; row < numRows; row++) {
+        for (int col = 0; col < numCols; col++) {
+            if (grid[row][col] == 1) {
+                // Set the corresponding cell and its adjacent cells to be obstacles
+                for (int i = row - 3; i <= row + 3; i++) {
+                    for (int j = col - 2; j <= col + 2; j++) {
+                        if (i >= 0 && i < numRows && j >= 0 && j < numCols) {
+                            enlargedGrid[i][j] = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return enlargedGrid;
+}
+
+Direction Mapping::getDirection(std::pair<int, int> a, std::pair<int, int> b) {
+    if (b.first > a.first) {
+        return DOWN;
+    } else if (b.first < a.first) {
+        return UP;
+    } else if (b.second > a.second) {
+        return RIGHT;
+    } else {
+        return LEFT;
+    }
+}
+
+
+std::vector<std::pair<int, int>> Mapping::trimPath(const std::vector<std::pair<int, int>> path) {
+    if (path.size() < 3) {
+        return path; // If there are less than 3 points, just return the original path
+    }
+
+    std::vector<std::pair<int, int>> trimmedPath;
+    trimmedPath.push_back(path[0]); // Add the first point to the path
+
+    // Iterate over the path points, checking the direction between every 3 consecutive points
+    for (int i = 1; i < path.size() - 1; ++i) {
+        Direction direction1 = Mapping::getDirection(path[i-1], path[i]);
+        Direction direction2 = Mapping::getDirection(path[i], path[i+1]);
+        if (direction1 != direction2) {
+            trimmedPath.push_back(path[i]); // If the direction changes, add the middle point to the path
+        }
+    }
+
+    trimmedPath.push_back(path.back()); // Add the last point to the path
+
+    return trimmedPath;
+}

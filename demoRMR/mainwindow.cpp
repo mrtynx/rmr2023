@@ -36,6 +36,8 @@ bool wall_mode = false;
 double setpoint_ramped[2] = {0.0, 0.0};
 
 vector<pair<int, int>> map_vec;
+vector<pair<int,int>> floodfill_path;
+vector<pair<double, double>> tableWidgetEntry;
 vector<Obstacle> obstacles;
 
 
@@ -47,8 +49,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
     //tu je napevno nastavena ip. treba zmenit na to co ste si zadali do text boxu alebo nejaku inu pevnu. co bude spravna
-//    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
-    ipaddress = "192.168.1.14";
+    ipaddress="127.0.0.1";//192.168.1.11toto je na niektory realny robot.. na lokal budete davat "127.0.0.1"
+//    ipaddress = "192.168.1.14";
   //  cap.open("http://192.168.1.11:8000/stream.mjpg");
     ui->setupUi(this);
     datacounter=0;
@@ -62,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     datacounter=0;
     setup_dataPlot();
+
 
 }
 
@@ -166,7 +169,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
     static int EncoderRightDiff = 0;
     static int EncoderLeftDiff = 0;
 
-    static double deadband_angle = 0.08;
+    static double deadband_angle = 0.05;
     static double setpoint[2];
 
     static bool reset_ramp = false;
@@ -214,40 +217,19 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         {
             if(mapping_mode)
             {
-//                double robot_angle = Odometry::rad2deg(coords[2]);
-
-//                if(!((robot_angle >= 89.5) && (robot_angle <= 90.5)))
-//                {
-//                        Control::setRobotMappingAngle(&robot, M_PI/2-coords[2]);
-//                }
-//                else
-//                {
-//                    map_now = true;
-//                    while(map_now)
-//                    {
-//                        ;;
-//                    }
-
-//                    setpoint_ramped[0] = 0;
-//                    setpoint_ramped[1] = 0;
-//                    setpoint[0] = setpoint_vec[setpointCounter][0];
-//                    setpoint[1] = setpoint_vec[setpointCounter][1];
-//                    setpointCounter++;
-//                }
-//                robot.setTranslationSpeed(0);
                 map_now = true;
                 while(map_now)
                 {
                     ;;//sleep
                 }
 
-                setpoint_ramped[0] = 0;
-                setpoint_ramped[1] = 0;
-                setpoint[0] = setpoint_vec[setpointCounter][0];
-                setpoint[1] = setpoint_vec[setpointCounter][1];
-                setpointCounter++;
-
             }
+
+            setpoint_ramped[0] = 0;
+            setpoint_ramped[1] = 0;
+            setpoint[0] = setpoint_vec[setpointCounter][0];
+            setpoint[1] = setpoint_vec[setpointCounter][1];
+            setpointCounter++;
 
 
         }
@@ -272,7 +254,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         //    Debug
 //            std::cout<<angle_err<<",   "<<std::endl;
 //            std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-            std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 1)<<std::endl;
+            std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 5)<<std::endl;
 //            std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //            std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //              cout<<setpoint_ramped[0]<<","<<setpoint_ramped[1]<<endl;;
@@ -293,7 +275,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         angle_err = Control::normalizeAngleError(angle_err);
 
 
-        if(!Control::robotReachedTarget(setpoint, coords, 1) && !obstacles.empty())
+        if(!Control::robotReachedTarget(setpoint, coords, 3) && !obstacles.empty())
         {
             vector<Obstacle>* front_query = Navigation::queryObstacles(obstacles, "front_narrow");
             Obstacle mean_front = Navigation::queryMean(*front_query);
@@ -439,7 +421,8 @@ int MainWindow::processThisLidar(LaserMeasurement laserData)
 
     if(end_mapping)
     {
-
+        vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
+        Mapping::gridToFile(grid, "C:\\Users\\mberk\\Desktop\\lidar_log\\grid.csv");
     }
 
     if(navigation_mode)
@@ -564,14 +547,21 @@ void MainWindow::on_tableWidget_cellEntered(int row, int column)
 
 void MainWindow::on_setButton_clicked()
 {
-    setpoint_mode = true;
+//    setpoint_mode = true;
 
     for(int i=0; i < ui->tableWidget->rowCount(); i++)
     {
+        QString empty_str = "";
+        bool isEmpty = ui->tableWidget->item(i,0)->text() == empty_str;
 
-        QString x_str = ui->tableWidget->item(i,0)->text();
-        QString y_str = ui->tableWidget->item(i,1)->text();
-        setpoint_vec.push_back({MainWindow::Qstr2d(x_str), MainWindow::Qstr2d(y_str)});
+        if(!isEmpty)
+        {
+            QString x_str = ui->tableWidget->item(i,0)->text();
+            QString y_str = ui->tableWidget->item(i,1)->text();
+//            setpoint_vec.push_back({MainWindow::Qstr2d(x_str), MainWindow::Qstr2d(y_str)});
+            tableWidgetEntry.push_back(make_pair(MainWindow::Qstr2d(x_str), MainWindow::Qstr2d(y_str)));
+
+        }
     }
 }
 
@@ -617,8 +607,17 @@ double MainWindow::Qstr2d(QString text)
 
 void MainWindow::on_showGridButton_clicked()
 {
-//    Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
-    vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
+    vector<vector<int>> grid;
+
+    if(!map_vec.empty())
+    {
+        grid = Mapping::VecMapToGrid(map_vec);
+    }
+    else
+    {
+        grid = Mapping::gridFromFile("C:\\Users\\mberk\\Desktop\\lidar_log\\grid.csv");
+    }
+
     Mapping::print_grid(grid);
 }
 
@@ -626,15 +625,19 @@ void MainWindow::on_showGridButton_clicked()
 void MainWindow::on_floodFillButton_clicked()
 {
 //    vector<vector<int>> grid = Mapping::mapAreaToGrid("C:\\Users\\mberk\\Desktop\\lidar_log\\data_lidar.csv");
-    vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
-    int start_x = 6;
-    int start_y = 41;
-    int target_x = 38;
-    int target_y = 38;
+//    vector<vector<int>> grid = Mapping::VecMapToGrid(map_vec);
+
+    int start_x = tableWidgetEntry.at(0).first / 10 + 3;
+    int start_y = (430 - tableWidgetEntry.at(0).second) / 10;
+    int target_x = tableWidgetEntry.at(1).first / 10 + 3;
+    int target_y = (430 - tableWidgetEntry.at(1).second) / 10;
+
+    vector<vector<int>> grid_small = Mapping::gridFromFile("C:\\Users\\mberk\\Desktop\\lidar_log\\grid.csv");
+    vector<vector<int>> grid = Mapping::enlargeObstacles(grid_small);
     Mapping::print_grid(grid);
     auto ffl_grid = Mapping::floodFill(grid, start_x, start_y, target_x, target_y);
-    auto path = Mapping::getPath(ffl_grid ,start_x, start_y);
-    Mapping::printPath(grid, path);
+    floodfill_path = Mapping::getPath(ffl_grid ,start_x, start_y);
+    Mapping::printPath(grid, floodfill_path);
 
 }
 
@@ -679,4 +682,33 @@ void MainWindow::on_navigateButton_clicked()
     navigation_mode = true;
 
 }
+
+
+void MainWindow::on_followFloodfillButton_clicked()
+{
+    vector<pair<int, int>> path = Mapping::trimPath(floodfill_path);
+    double x, y;
+
+    for(int i = 0; i < path.size(); i++)
+    {
+        x = (path.at(i).second - 3) * 10 ;
+        y = (43 - path.at(i).first) * 10;
+        if((i > 0) && (i != path.size()-1))
+        {
+            x -= 30;
+            y += 10;
+        }
+        setpoint_vec.push_back({x, y});
+
+    }
+
+    cout<<"TRIMMED PATH"<<endl;
+    for (const auto& p : setpoint_vec) {
+        cout << "(" << p[0] << ", " << p[1] << ")" << endl;
+    }
+
+
+    setpoint_mode = true;
+}
+
 

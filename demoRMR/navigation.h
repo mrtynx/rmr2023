@@ -2,6 +2,7 @@
 #define NAVIGATION_H
 
 #include "odometry.h"
+#include "control_system.h".h"
 #include "robot.h"
 
 #include <algorithm>
@@ -17,6 +18,24 @@ struct Obstacle {
 
 };
 
+enum ObstacleType
+{
+    RightWall,
+    LeftWall,
+    FrontWall,
+    Clear,
+    UNKNWN
+};
+
+enum RobotOrientation
+{
+    FacingUP,
+    FacingDOWN,
+    FacingLEFT,
+    FacingRIGHT
+};
+
+
 class Navigation
 {
 public :
@@ -26,6 +45,10 @@ public :
     static vector<Obstacle>* queryObstacles(vector<Obstacle> obstacles, string str);
     static double exploreRadius(vector<Obstacle> obstacles, double* coords, double radius);
     static Obstacle queryMean(vector<Obstacle> obstacles);
+    static ObstacleType determineObstacleType(vector<Obstacle> obstacles);
+    static bool alignToWall(ObstacleType obstacle_type, double robot_angle);
+    static RobotOrientation determineRobotOrientation(double* coords);
+    static void generateSetpoint(double* temp_setpoint, double* coords, ObstacleType obstacle_type, RobotOrientation robot_orientation, Obstacle query_mean, double safedist);
 
 };
 

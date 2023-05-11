@@ -30,8 +30,7 @@ bool mapping_mode = false;
 bool map_now = false;
 bool end_mapping = false;
 bool navigation_mode = false;
-bool wall_align = false;
-bool wall_mode = false;
+
 
 double setpoint_ramped[2] = {0.0, 0.0};
 
@@ -199,7 +198,6 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
         if(!Control::robotReachedTarget(setpoint, coords, 5))
         {           
-//            Signal::setpointRamp(setpoint_ramped, setpoint, 0.5);
 
             if(fabs(angle_err) > deadband_angle)
             {
@@ -254,7 +252,8 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         //    Debug
 //            std::cout<<angle_err<<",   "<<std::endl;
 //            std::cout<<Odometry::rad2deg(angle_err)<<std::endl;
-            std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 5)<<std::endl;
+//            std::cout<<"Reached dist: "<<Control::robotReachedTarget(setpoint, coords, 5)<<std::endl;
+//            cout<<coords[2]<<endl;
 //            std::cout<<"Setpoint: "<<setpoint[0]<<" , "<<setpoint[1]<<" Setpoint counter: "<<setpointCounter<<std::endl;
 //            std::cout<<"Left: "<<EncoderLeftDiff<<" Right: "<<EncoderRightDiff<<endl;
 //              cout<<setpoint_ramped[0]<<","<<setpoint_ramped[1]<<endl;;
@@ -262,98 +261,115 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
     if(navigation_mode && !manual_mode)
     {
+
+        static bool wall_align = false;
+        static bool wall_follow = false;
+        static bool front_obstacle = false;
+
+        static string wall_follow_mode = "none";
+        static ObstacleType obstacle_type = UNKNWN;
+
+        static double prev_angle = 420;
+        static double temp_setpoint[2] = {0.0, 0.0};
+        double safedist = 50;
+
         setpoint[0] = 400;
         setpoint[1] = 360;
 
-        static bool left_wall = false;
-        static bool right_wall = false;
+        double rot_speed;
 
-        static double wall_setpoint[2] = {0.0, 0.0};
-
-
-        double angle_err = Control::getAngleError(setpoint, coords);
-        angle_err = Control::normalizeAngleError(angle_err);
+        RobotOrientation robot_orientation;
 
 
-        if(!Control::robotReachedTarget(setpoint, coords, 3) && !obstacles.empty())
+        if(!Control::robotReachedTarget(setpoint, coords, 5) && !obstacles.empty())
         {
             vector<Obstacle>* front_query = Navigation::queryObstacles(obstacles, "front_narrow");
             Obstacle mean_front = Navigation::queryMean(*front_query);
-            cout<<mean_front.scan_distance<<endl;
 
-            if((mean_front.scan_distance > 65) && !front_query->empty() && front_query != nullptr)
+            front_obstacle = !front_query->empty() && front_query != nullptr && (mean_front.scan_distance < 65);
+
+            if(wall_align)
             {
-                left_wall = false;
-                right_wall = false;
-
-                Signal::setpointRamp(setpoint_ramped, setpoint, 1);
-
-                if(fabs(angle_err) > deadband_angle)
+                if(obstacle_type == LeftWall)
                 {
-                    Control::setRobotAngle(setpoint_ramped, coords, &robot);
+                    rot_speed = -M_PI/6;
                 }
 
+                vector<Obstacle>* left_query = Navigation::queryObstacles(obstacles, "left_narrow");
+                Obstacle mean_left = Navigation::queryMean(*left_query);
+
+                if(!(prev_angle < mean_left.scan_distance))
+                {
+                    prev_angle = mean_left.scan_distance;
+                    robot.setRotationSpeed(rot_speed);
+                }
 
                 else
                 {
-                    Control::setRobotPosition(setpoint_ramped, coords, reset_ramp, &robot);
+                    robot.setRotationSpeed(0);
+                    prev_angle = 420;
+                    wall_align = false;
+                    wall_follow = true;
                 }
+
             }
-            else if(wall_align)
+            else if(wall_follow && !front_obstacle)
             {
-                //narovnat sa na stenu cez x,y setpoint
-//                if(right_wall && )
+                if(obstacle_type == LeftWall)
+                {
+                    if(datacounter % 10 == 0)
+                    {
+                        vector<Obstacle>* left_query = Navigation::queryObstacles(obstacles, "left_narrow");
+                        Obstacle mean_left = Navigation::queryMean(*left_query);
+                        if(!((mean_left.scan_distance <= safedist - 5) && (mean_left.scan_distance >= safedist + 5)))
+                        {
+                            robot_orientation = Navigation::determineRobotOrientation(coords);
+                            obstacle_type = Navigation::determineObstacleType(obstacles);
+                            Navigation::generateSetpoint(temp_setpoint, coords, obstacle_type, robot_orientation, mean_left, safedist);
+                            Control::setRobotAngle(temp_setpoint, coords, &robot);
+                            cout<<temp_setpoint[0]<<" , "<<temp_setpoint[1]<<endl;
+                        }
+                        else
+                        {
+                            robot.setTranslationSpeed(100);
+                        }
+                    }
+
+                    else
+                    {
+                        robot.setTranslationSpeed(100);
+                    }
+//                    robot.setTranslationSpeed(100);
+                }
+
+            }
+            else if(front_obstacle)
+            {
+                robot.setTranslationSpeed(0);
+                obstacle_type = Navigation::determineObstacleType(obstacles);
+//                cout<<obstacle_type<<endl;
+                wall_align = true;
             }
             else
             {
-                robot.setTranslationSpeed(0);
+                double angle_err = Control::normalizeAngleError(Control::getAngleError(setpoint, coords));
 
-
-                vector<Obstacle>* left_query = Navigation::queryObstacles(obstacles, "left_narrow");
-                vector<Obstacle>* right_query = Navigation::queryObstacles(obstacles, "right_narrow");
-
-
-                if(left_query->size() > right_query->size())
+                if(fabs(angle_err) > deadband_angle)
                 {
-                    left_wall = true;
+                    Control::setRobotAngle(setpoint, coords, &robot);
                 }
-                else if(left_query->size() < right_query->size())
+                else
                 {
-                    right_wall = true;
+                    Control::setRobotPosition(setpoint, coords, reset_ramp, &robot);
                 }
-
-                Obstacle front_scan = Navigation::queryMean(*front_query);
-                cout<<front_scan.x<<" , "<<front_scan.y<<endl;
-
-                wall_align = true;
-
-
-
-
-//                vector<Obstacle>* query = Navigation::queryObstacles(obstacles, "front_narrow");
-//                if(query != nullptr)
-//                {
-//                    double avg = 0;
-//                    for(Obstacle obstacle: *query)
-//                    {
-//                        avg += obstacle.scan_angle/(query->size());
-//                    }
-//                    cout<<avg<<endl;
-//                   double points =  Navigation::chooseShorterPath(query, coords, setpoint);
-//                   if(0 < points)
-//                   {
-//                       cout<<points<<endl;
-//                       wall_align = true;
-//                   }
-
-
-//                }
-
-
             }
 
 
+
         }
+
+
+
     }
 
 
@@ -363,7 +379,7 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
 
     if(datacounter % 2)
     {
-        emit uiValuesChanged(coords[0]*100, coords[1]*100, Odometry::rad2deg(coords[2]));
+        emit uiValuesChanged(coords[0]*100, coords[1]*100, Control::normalizeAngleError(coords[2]));
         QVector<double> x(1), angle(1), distance_x(1), distance_y(1);
         x[0] = datacounter;
         angle[0] = Odometry::rad2deg(coords[2]);
@@ -389,11 +405,6 @@ int MainWindow::processThisRobot(TKobukiData robotdata)
         ui->DistancePlot->graph(0)->data()->clear();
         ui->DistancePlot->graph(1)->data()->clear();
 //        ui->distancePlotY->graph(0)->data()->clear();
-
-        for(Obstacle& obstacle: obstacles)
-        {
-//            cout<<obstacle.x<<" , "<<obstacle.y<<endl;
-        }
     }
 
     datacounter++;

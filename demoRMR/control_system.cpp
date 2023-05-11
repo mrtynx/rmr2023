@@ -75,7 +75,7 @@ void Control::setRobotPosition(double* ref, double* coords, bool reset_ramp, Rob
 
     double Kp = 3;
     double error = Control::robotTargetDist(ref, coords);
-    double translation_speed = Signal::saturate(Kp*error, 5*dt, -5*dt);
+    double translation_speed = Signal::saturate(Kp*error, 2.5*dt, -2.5*dt);
 
     robot->setTranslationSpeed(translation_speed);
 

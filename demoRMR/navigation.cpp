@@ -10,7 +10,6 @@
 
 using namespace std;
 
-
 vector<Obstacle>* Navigation::queryObstacles(vector<Obstacle> obstacles, string str)
 {
     if(obstacles.empty())
@@ -69,6 +68,13 @@ vector<Obstacle>* Navigation::queryObstacles(vector<Obstacle> obstacles, string 
         max_angle = 360;
         lidar_min_dist = 13;
         lidar_max_dist = 250;
+    }
+    else if(str == "full_short")
+    {
+        min_angle = 0;
+        max_angle = 360;
+        lidar_min_dist = 13;
+        lidar_max_dist = 70;
     }
     else
     {
@@ -236,13 +242,85 @@ Obstacle Navigation::queryMean(vector<Obstacle> obstacles)
     return mean;
 }
 
-//double Navigation::exploreRadius(vector<Obstacle> obstacles, double* coords, double radius)
-//{
 
-//}
+ObstacleType Navigation::determineObstacleType(vector<Obstacle> obstacles)
+{
+    vector<Obstacle>* front_query = Navigation::queryObstacles(obstacles, "front_narrow");
+    vector<Obstacle>* left_query = Navigation::queryObstacles(obstacles, "left_narrow");
+    vector<Obstacle>* right_query = Navigation::queryObstacles(obstacles, "right_narrow");
+
+    if(left_query->size() > right_query->size())
+    {
+        return LeftWall;
+    }
+    else if(left_query->size() < right_query->size())
+    {
+        return RightWall;
+    }
+    else if((!front_query->empty()) && (right_query->empty()) && (left_query->empty()))
+    {
+        return FrontWall;
+    }
+    else if(front_query->empty())
+    {
+        return Clear;
+    }
+    else
+    {
+        return UNKNWN;
+    }
+
+}
 
 
-//void Navigation::wallAlign(vector<Obstacle> obstacles, Robot* robot, double* coords, double safedist)
-//{
+RobotOrientation Navigation::determineRobotOrientation(double* coords)
+{
+    double angle = Odometry::rad2deg(coords[2]);
 
-//}
+    if(((angle >= -180) && (angle <= -135)) || ((angle >= 135) && (angle <= 180)))
+    {
+        return FacingLEFT;
+    }
+    else if(((angle >= -45) && (angle <= -1)) || ((angle >= 0) && (angle <= 45)))
+    {
+        return FacingRIGHT;
+    }
+    else if((angle > 45) && (angle < 135))
+    {
+        return FacingUP;
+    }
+    else
+    {
+        return FacingDOWN;
+    }
+
+}
+
+
+void Navigation::generateSetpoint(double* temp_setpoint, double* coords, ObstacleType obstacle_type, RobotOrientation robot_orientation, Obstacle query_mean, double safedist)
+{
+    if(obstacle_type == LeftWall)
+    {
+        switch (robot_orientation)
+        {
+        case FacingLEFT:
+            temp_setpoint[0] = coords[0]*100 - 10;
+            temp_setpoint[1] = coords[1]*100 + (safedist - query_mean.scan_distance);
+            break;
+        case FacingRIGHT:
+            temp_setpoint[0] = coords[0]*100 + 10;
+            temp_setpoint[1] = coords[1]*100 - (safedist - query_mean.scan_distance);
+            break;
+        case FacingUP:
+            temp_setpoint[0] = coords[0]*100 + (safedist - query_mean.scan_distance);;
+            temp_setpoint[1] = coords[1]*100 + 10;
+            break;
+        case FacingDOWN:
+            temp_setpoint[0] = coords[0]*100 - (safedist - query_mean.scan_distance);
+            temp_setpoint[1] = coords[1]*100 - 10;
+            break;
+        }
+    }
+}
+
+
